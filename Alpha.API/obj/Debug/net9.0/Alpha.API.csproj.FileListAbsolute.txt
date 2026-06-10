@@ -122,4 +122,4 @@ C:\Users\Erwin\source\repos\alpha-mvp\Alpha.API\obj\Debug\net9.0\refint\Alpha.AP
 C:\Users\Erwin\source\repos\alpha-mvp\Alpha.API\obj\Debug\net9.0\Alpha.API.pdb
 C:\Users\Erwin\source\repos\alpha-mvp\Alpha.API\obj\Debug\net9.0\Alpha.API.genruntimeconfig.cache
 C:\Users\Erwin\source\repos\alpha-mvp\Alpha.API\obj\Debug\net9.0\ref\Alpha.API.dll
-C:\Users\Erwin\source\repos\alpha-mvp\Alpha.API\obj\Debug\net9.0\staticwebassets.upToDateCheck.txt
+C:\Users\Erwin\source\repos\alpha-mvp\Alpha.API\obj\Debug\net9.0\Alpha.API.sourcelink.json
