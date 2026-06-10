@@ -1,0 +1,329 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\Erwin\\source\\repos\\alpha-mvp\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{EF4B8DDB-E718-4087-B953-05E475DA267D}|Alpha.API\\Alpha.API.csproj|c:\\users\\erwin\\source\\repos\\alpha-mvp\\alpha.api\\controllers\\orderscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{EF4B8DDB-E718-4087-B953-05E475DA267D}|Alpha.API\\Alpha.API.csproj|solutionrelative:alpha.api\\controllers\\orderscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{EF4B8DDB-E718-4087-B953-05E475DA267D}|Alpha.API\\Alpha.API.csproj|c:\\users\\erwin\\source\\repos\\alpha-mvp\\alpha.api\\data\\appdbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{EF4B8DDB-E718-4087-B953-05E475DA267D}|Alpha.API\\Alpha.API.csproj|solutionrelative:alpha.api\\data\\appdbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{EF4B8DDB-E718-4087-B953-05E475DA267D}|Alpha.API\\Alpha.API.csproj|c:\\users\\erwin\\source\\repos\\alpha-mvp\\alpha.api\\controllers\\driverscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{EF4B8DDB-E718-4087-B953-05E475DA267D}|Alpha.API\\Alpha.API.csproj|solutionrelative:alpha.api\\controllers\\driverscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{EF4B8DDB-E718-4087-B953-05E475DA267D}|Alpha.API\\Alpha.API.csproj|c:\\users\\erwin\\source\\repos\\alpha-mvp\\alpha.api\\models\\supplier.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{EF4B8DDB-E718-4087-B953-05E475DA267D}|Alpha.API\\Alpha.API.csproj|solutionrelative:alpha.api\\models\\supplier.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{EF4B8DDB-E718-4087-B953-05E475DA267D}|Alpha.API\\Alpha.API.csproj|c:\\users\\erwin\\source\\repos\\alpha-mvp\\alpha.api\\models\\order.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{EF4B8DDB-E718-4087-B953-05E475DA267D}|Alpha.API\\Alpha.API.csproj|solutionrelative:alpha.api\\models\\order.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{EF4B8DDB-E718-4087-B953-05E475DA267D}|Alpha.API\\Alpha.API.csproj|c:\\users\\erwin\\source\\repos\\alpha-mvp\\alpha.api\\controllers\\deliveryproofcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{EF4B8DDB-E718-4087-B953-05E475DA267D}|Alpha.API\\Alpha.API.csproj|solutionrelative:alpha.api\\controllers\\deliveryproofcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{EF4B8DDB-E718-4087-B953-05E475DA267D}|Alpha.API\\Alpha.API.csproj|c:\\users\\erwin\\source\\repos\\alpha-mvp\\alpha.api\\models\\driver.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{EF4B8DDB-E718-4087-B953-05E475DA267D}|Alpha.API\\Alpha.API.csproj|solutionrelative:alpha.api\\models\\driver.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{EF4B8DDB-E718-4087-B953-05E475DA267D}|Alpha.API\\Alpha.API.csproj|c:\\users\\erwin\\source\\repos\\alpha-mvp\\alpha.api\\controllers\\dashboardcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{EF4B8DDB-E718-4087-B953-05E475DA267D}|Alpha.API\\Alpha.API.csproj|solutionrelative:alpha.api\\controllers\\dashboardcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{EF4B8DDB-E718-4087-B953-05E475DA267D}|Alpha.API\\Alpha.API.csproj|c:\\users\\erwin\\source\\repos\\alpha-mvp\\alpha.api\\controllers\\statushistorycontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{EF4B8DDB-E718-4087-B953-05E475DA267D}|Alpha.API\\Alpha.API.csproj|solutionrelative:alpha.api\\controllers\\statushistorycontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{EF4B8DDB-E718-4087-B953-05E475DA267D}|Alpha.API\\Alpha.API.csproj|c:\\users\\erwin\\source\\repos\\alpha-mvp\\alpha.api\\controllers\\auditlogscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{EF4B8DDB-E718-4087-B953-05E475DA267D}|Alpha.API\\Alpha.API.csproj|solutionrelative:alpha.api\\controllers\\auditlogscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{EF4B8DDB-E718-4087-B953-05E475DA267D}|Alpha.API\\Alpha.API.csproj|c:\\users\\erwin\\source\\repos\\alpha-mvp\\alpha.api\\controllers\\supplierscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{EF4B8DDB-E718-4087-B953-05E475DA267D}|Alpha.API\\Alpha.API.csproj|solutionrelative:alpha.api\\controllers\\supplierscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{EF4B8DDB-E718-4087-B953-05E475DA267D}|Alpha.API\\Alpha.API.csproj|c:\\users\\erwin\\source\\repos\\alpha-mvp\\alpha.api\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{EF4B8DDB-E718-4087-B953-05E475DA267D}|Alpha.API\\Alpha.API.csproj|solutionrelative:alpha.api\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{EF4B8DDB-E718-4087-B953-05E475DA267D}|Alpha.API\\Alpha.API.csproj|c:\\users\\erwin\\source\\repos\\alpha-mvp\\alpha.api\\dtos\\createorderdto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{EF4B8DDB-E718-4087-B953-05E475DA267D}|Alpha.API\\Alpha.API.csproj|solutionrelative:alpha.api\\dtos\\createorderdto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{EF4B8DDB-E718-4087-B953-05E475DA267D}|Alpha.API\\Alpha.API.csproj|c:\\users\\erwin\\source\\repos\\alpha-mvp\\alpha.api\\models\\deliveryproof.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{EF4B8DDB-E718-4087-B953-05E475DA267D}|Alpha.API\\Alpha.API.csproj|solutionrelative:alpha.api\\models\\deliveryproof.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{EF4B8DDB-E718-4087-B953-05E475DA267D}|Alpha.API\\Alpha.API.csproj|c:\\users\\erwin\\source\\repos\\alpha-mvp\\alpha.api\\models\\auditlog.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{EF4B8DDB-E718-4087-B953-05E475DA267D}|Alpha.API\\Alpha.API.csproj|solutionrelative:alpha.api\\models\\auditlog.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{EF4B8DDB-E718-4087-B953-05E475DA267D}|Alpha.API\\Alpha.API.csproj|c:\\users\\erwin\\source\\repos\\alpha-mvp\\alpha.api\\models\\statushistory.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{EF4B8DDB-E718-4087-B953-05E475DA267D}|Alpha.API\\Alpha.API.csproj|solutionrelative:alpha.api\\models\\statushistory.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{EF4B8DDB-E718-4087-B953-05E475DA267D}|Alpha.API\\Alpha.API.csproj|c:\\users\\erwin\\source\\repos\\alpha-mvp\\alpha.api\\properties\\launchsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{EF4B8DDB-E718-4087-B953-05E475DA267D}|Alpha.API\\Alpha.API.csproj|solutionrelative:alpha.api\\properties\\launchsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{EF4B8DDB-E718-4087-B953-05E475DA267D}|Alpha.API\\Alpha.API.csproj|c:\\users\\erwin\\source\\repos\\alpha-mvp\\alpha.api\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{EF4B8DDB-E718-4087-B953-05E475DA267D}|Alpha.API\\Alpha.API.csproj|solutionrelative:alpha.api\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{EF4B8DDB-E718-4087-B953-05E475DA267D}|Alpha.API\\Alpha.API.csproj|c:\\users\\erwin\\source\\repos\\alpha-mvp\\alpha.api\\models\\user.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{EF4B8DDB-E718-4087-B953-05E475DA267D}|Alpha.API\\Alpha.API.csproj|solutionrelative:alpha.api\\models\\user.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 6,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "StatusHistoryController.cs",
+              "DocumentMoniker": "C:\\Users\\Erwin\\source\\repos\\alpha-mvp\\Alpha.API\\Controllers\\StatusHistoryController.cs",
+              "RelativeDocumentMoniker": "Alpha.API\\Controllers\\StatusHistoryController.cs",
+              "ToolTip": "C:\\Users\\Erwin\\source\\repos\\alpha-mvp\\Alpha.API\\Controllers\\StatusHistoryController.cs",
+              "RelativeToolTip": "Alpha.API\\Controllers\\StatusHistoryController.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAB8AAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-06-09T06:42:42.908Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
+              "Title": "AuditLogsController.cs",
+              "DocumentMoniker": "C:\\Users\\Erwin\\source\\repos\\alpha-mvp\\Alpha.API\\Controllers\\AuditLogsController.cs",
+              "RelativeDocumentMoniker": "Alpha.API\\Controllers\\AuditLogsController.cs",
+              "ToolTip": "C:\\Users\\Erwin\\source\\repos\\alpha-mvp\\Alpha.API\\Controllers\\AuditLogsController.cs",
+              "RelativeToolTip": "Alpha.API\\Controllers\\AuditLogsController.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAB8AAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-06-09T06:42:16.005Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "AppDbContext.cs",
+              "DocumentMoniker": "C:\\Users\\Erwin\\source\\repos\\alpha-mvp\\Alpha.API\\Data\\AppDbContext.cs",
+              "RelativeDocumentMoniker": "Alpha.API\\Data\\AppDbContext.cs",
+              "ToolTip": "C:\\Users\\Erwin\\source\\repos\\alpha-mvp\\Alpha.API\\Data\\AppDbContext.cs",
+              "RelativeToolTip": "Alpha.API\\Data\\AppDbContext.cs",
+              "ViewState": "AgIAABcAAAAAAAAAAAAAwDkAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-06-08T14:12:12.32Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "Driver.cs",
+              "DocumentMoniker": "C:\\Users\\Erwin\\source\\repos\\alpha-mvp\\Alpha.API\\Models\\Driver.cs",
+              "RelativeDocumentMoniker": "Alpha.API\\Models\\Driver.cs",
+              "ToolTip": "C:\\Users\\Erwin\\source\\repos\\alpha-mvp\\Alpha.API\\Models\\Driver.cs",
+              "RelativeToolTip": "Alpha.API\\Models\\Driver.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABEAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-06-08T15:46:23.113Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "Supplier.cs",
+              "DocumentMoniker": "C:\\Users\\Erwin\\source\\repos\\alpha-mvp\\Alpha.API\\Models\\Supplier.cs",
+              "RelativeDocumentMoniker": "Alpha.API\\Models\\Supplier.cs",
+              "ToolTip": "C:\\Users\\Erwin\\source\\repos\\alpha-mvp\\Alpha.API\\Models\\Supplier.cs",
+              "RelativeToolTip": "Alpha.API\\Models\\Supplier.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA8AAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-06-08T15:46:00.528Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "DriversController.cs",
+              "DocumentMoniker": "C:\\Users\\Erwin\\source\\repos\\alpha-mvp\\Alpha.API\\Controllers\\DriversController.cs",
+              "RelativeDocumentMoniker": "Alpha.API\\Controllers\\DriversController.cs",
+              "ToolTip": "C:\\Users\\Erwin\\source\\repos\\alpha-mvp\\Alpha.API\\Controllers\\DriversController.cs",
+              "RelativeToolTip": "Alpha.API\\Controllers\\DriversController.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABgAAAAIAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-06-09T06:41:02.887Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "OrdersController.cs",
+              "DocumentMoniker": "C:\\Users\\Erwin\\source\\repos\\alpha-mvp\\Alpha.API\\Controllers\\OrdersController.cs",
+              "RelativeDocumentMoniker": "Alpha.API\\Controllers\\OrdersController.cs",
+              "ToolTip": "C:\\Users\\Erwin\\source\\repos\\alpha-mvp\\Alpha.API\\Controllers\\OrdersController.cs",
+              "RelativeToolTip": "Alpha.API\\Controllers\\OrdersController.cs",
+              "ViewState": "AgIAAEQBAAAAAAAAAAAAAGABAAALAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-06-08T14:20:59.399Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "Order.cs",
+              "DocumentMoniker": "C:\\Users\\Erwin\\source\\repos\\alpha-mvp\\Alpha.API\\Models\\Order.cs",
+              "RelativeDocumentMoniker": "Alpha.API\\Models\\Order.cs",
+              "ToolTip": "C:\\Users\\Erwin\\source\\repos\\alpha-mvp\\Alpha.API\\Models\\Order.cs",
+              "RelativeToolTip": "Alpha.API\\Models\\Order.cs",
+              "ViewState": "AgIAABoAAAAAAAAAAAAswC4AAAAnAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-06-08T14:10:58.949Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "DeliveryProofController.cs",
+              "DocumentMoniker": "C:\\Users\\Erwin\\source\\repos\\alpha-mvp\\Alpha.API\\Controllers\\DeliveryProofController.cs",
+              "RelativeDocumentMoniker": "Alpha.API\\Controllers\\DeliveryProofController.cs",
+              "ToolTip": "C:\\Users\\Erwin\\source\\repos\\alpha-mvp\\Alpha.API\\Controllers\\DeliveryProofController.cs",
+              "RelativeToolTip": "Alpha.API\\Controllers\\DeliveryProofController.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAACEAAAAFAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-06-09T06:43:14.028Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "DashboardController.cs",
+              "DocumentMoniker": "C:\\Users\\Erwin\\source\\repos\\alpha-mvp\\Alpha.API\\Controllers\\DashboardController.cs",
+              "RelativeDocumentMoniker": "Alpha.API\\Controllers\\DashboardController.cs",
+              "ToolTip": "C:\\Users\\Erwin\\source\\repos\\alpha-mvp\\Alpha.API\\Controllers\\DashboardController.cs",
+              "RelativeToolTip": "Alpha.API\\Controllers\\DashboardController.cs",
+              "ViewState": "AgIAAAIAAAAAAAAAAAAqwDgAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-06-09T06:43:40.266Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 10,
+              "Title": "SuppliersController.cs",
+              "DocumentMoniker": "C:\\Users\\Erwin\\source\\repos\\alpha-mvp\\Alpha.API\\Controllers\\SuppliersController.cs",
+              "RelativeDocumentMoniker": "Alpha.API\\Controllers\\SuppliersController.cs",
+              "ToolTip": "C:\\Users\\Erwin\\source\\repos\\alpha-mvp\\Alpha.API\\Controllers\\SuppliersController.cs",
+              "RelativeToolTip": "Alpha.API\\Controllers\\SuppliersController.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAC4AAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-06-09T06:41:47.727Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 13,
+              "Title": "DeliveryProof.cs",
+              "DocumentMoniker": "C:\\Users\\Erwin\\source\\repos\\alpha-mvp\\Alpha.API\\Models\\DeliveryProof.cs",
+              "RelativeDocumentMoniker": "Alpha.API\\Models\\DeliveryProof.cs",
+              "ToolTip": "C:\\Users\\Erwin\\source\\repos\\alpha-mvp\\Alpha.API\\Models\\DeliveryProof.cs",
+              "RelativeToolTip": "Alpha.API\\Models\\DeliveryProof.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABQAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-06-08T15:47:22.279Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 14,
+              "Title": "AuditLog.cs",
+              "DocumentMoniker": "C:\\Users\\Erwin\\source\\repos\\alpha-mvp\\Alpha.API\\Models\\AuditLog.cs",
+              "RelativeDocumentMoniker": "Alpha.API\\Models\\AuditLog.cs",
+              "ToolTip": "C:\\Users\\Erwin\\source\\repos\\alpha-mvp\\Alpha.API\\Models\\AuditLog.cs",
+              "RelativeToolTip": "Alpha.API\\Models\\AuditLog.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABcAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-06-08T15:46:59.685Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 15,
+              "Title": "StatusHistory.cs",
+              "DocumentMoniker": "C:\\Users\\Erwin\\source\\repos\\alpha-mvp\\Alpha.API\\Models\\StatusHistory.cs",
+              "RelativeDocumentMoniker": "Alpha.API\\Models\\StatusHistory.cs",
+              "ToolTip": "C:\\Users\\Erwin\\source\\repos\\alpha-mvp\\Alpha.API\\Models\\StatusHistory.cs",
+              "RelativeToolTip": "Alpha.API\\Models\\StatusHistory.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABcAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-06-08T15:46:42.67Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 17,
+              "Title": "appsettings.json",
+              "DocumentMoniker": "C:\\Users\\Erwin\\source\\repos\\alpha-mvp\\Alpha.API\\appsettings.json",
+              "RelativeDocumentMoniker": "Alpha.API\\appsettings.json",
+              "ToolTip": "C:\\Users\\Erwin\\source\\repos\\alpha-mvp\\Alpha.API\\appsettings.json",
+              "RelativeToolTip": "Alpha.API\\appsettings.json",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAMAAAAEAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2026-06-08T14:27:45.857Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 12,
+              "Title": "CreateOrderDto.cs",
+              "DocumentMoniker": "C:\\Users\\Erwin\\source\\repos\\alpha-mvp\\Alpha.API\\DTOs\\CreateOrderDto.cs",
+              "RelativeDocumentMoniker": "Alpha.API\\DTOs\\CreateOrderDto.cs",
+              "ToolTip": "C:\\Users\\Erwin\\source\\repos\\alpha-mvp\\Alpha.API\\DTOs\\CreateOrderDto.cs",
+              "RelativeToolTip": "Alpha.API\\DTOs\\CreateOrderDto.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA0AAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-06-08T14:19:53.452Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 11,
+              "Title": "Program.cs",
+              "DocumentMoniker": "C:\\Users\\Erwin\\source\\repos\\alpha-mvp\\Alpha.API\\Program.cs",
+              "RelativeDocumentMoniker": "Alpha.API\\Program.cs",
+              "ToolTip": "C:\\Users\\Erwin\\source\\repos\\alpha-mvp\\Alpha.API\\Program.cs",
+              "RelativeToolTip": "Alpha.API\\Program.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABsAAAADAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-06-08T14:16:41.407Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 16,
+              "Title": "launchSettings.json",
+              "DocumentMoniker": "C:\\Users\\Erwin\\source\\repos\\alpha-mvp\\Alpha.API\\Properties\\launchSettings.json",
+              "RelativeDocumentMoniker": "Alpha.API\\Properties\\launchSettings.json",
+              "ToolTip": "C:\\Users\\Erwin\\source\\repos\\alpha-mvp\\Alpha.API\\Properties\\launchSettings.json",
+              "RelativeToolTip": "Alpha.API\\Properties\\launchSettings.json",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABcAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2026-06-08T14:38:11.281Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 18,
+              "Title": "User.cs",
+              "DocumentMoniker": "C:\\Users\\Erwin\\source\\repos\\alpha-mvp\\Alpha.API\\Models\\User.cs",
+              "RelativeDocumentMoniker": "Alpha.API\\Models\\User.cs",
+              "ToolTip": "C:\\Users\\Erwin\\source\\repos\\alpha-mvp\\Alpha.API\\Models\\User.cs",
+              "RelativeToolTip": "Alpha.API\\Models\\User.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAwAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-06-08T14:07:03.128Z"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
