@@ -13,7 +13,7 @@ export default function AnalyticsPage() {
   const fetchStats = async () => {
     try {
       const response = await api.get(
-        "/Dashboard/stats"
+        "/api/Dashboard/stats"
       );
 
       setStats(response.data);
@@ -44,7 +44,9 @@ export default function AnalyticsPage() {
         Analytics
       </h1>
 
-      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1
+sm:grid-cols-2
+xl:grid-cols-4 gap-6">
         <div className="bg-[#111827] p-6 rounded-3xl">
           <p className="text-gray-400">
             Live Orders
@@ -77,7 +79,7 @@ export default function AnalyticsPage() {
 
         <div className="bg-[#111827] p-6 rounded-3xl">
           <p className="text-gray-400">
-            Delivered Today
+            delivered Today
           </p>
 
           <h2 className="text-4xl text-white font-bold mt-3">

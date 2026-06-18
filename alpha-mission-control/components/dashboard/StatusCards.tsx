@@ -14,7 +14,7 @@ const [stats, setStats] =
   const fetchStats = async () => {
     try {
       const response = await api.get(
-        "/Dashboard/stats"
+        "/api/Dashboard/stats"
       );
 
       setStats(response.data);

@@ -37,7 +37,14 @@ export default function StatusCard({
               {title}
             </p>
 
-            <h3 className="text-4xl font-bold text-white mt-4">
+            <h3 className="
+text-2xl
+sm:text-3xl
+lg:text-4xl
+font-bold
+text-white
+mt-4
+">
               {value}
             </h3>
 
@@ -58,7 +65,12 @@ export default function StatusCard({
           <div className="relative">
             <div className="absolute inset-0 bg-green-500/20 blur-xl rounded-full" />
 
-            <div className="relative h-14 w-14 rounded-2xl bg-[#1F2937] border border-white/5 flex items-center justify-center">
+            <div className="
+relative
+h-12
+w-12
+sm:h-14
+sm:w-14 rounded-2xl bg-[#1F2937] border border-white/5 flex items-center justify-center">
               <Icon size={26} className="text-green-400" />
             </div>
           </div>

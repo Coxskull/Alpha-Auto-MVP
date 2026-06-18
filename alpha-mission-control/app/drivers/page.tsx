@@ -12,7 +12,7 @@ export default function DriversPage() {
 
   const fetchDrivers = async () => {
     try {
-      const response = await api.get("/Drivers");
+      const response = await api.get("/api/Drivers");
 
       setDrivers(response.data);
     } catch (error) {

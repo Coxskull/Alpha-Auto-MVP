@@ -158,7 +158,7 @@ export default function OrderActions({
         </Button>
 
         {/* ========================================= */}
-        {/* PICKED UP */}
+        {/* picked_up */}
         {/* ========================================= */}
 
         <Button
@@ -179,11 +179,11 @@ export default function OrderActions({
             },
           }}
         >
-          Mark Picked Up
+          Mark picked_up
         </Button>
 
         {/* ========================================= */}
-        {/* EN ROUTE */}
+        {/* en_route */}
         {/* ========================================= */}
 
         <Button
@@ -204,7 +204,7 @@ export default function OrderActions({
             },
           }}
         >
-          Mark En Route
+          Mark en_route
         </Button>
 
         {/* ========================================= */}
@@ -229,7 +229,7 @@ export default function OrderActions({
             },
           }}
         >
-          Mark Delivered
+          Mark delivered
         </Button>
 
         {/* ========================================= */}

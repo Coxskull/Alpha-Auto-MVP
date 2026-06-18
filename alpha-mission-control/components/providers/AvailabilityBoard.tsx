@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 
 import api from "../../services/api";
-import StatusChip from "../StatusChip";
+
 
 interface Supplier {
   id: string;
@@ -47,8 +47,8 @@ export default function AvailabilityBoard({
 
         const response =
           type === "suppliers"
-            ? await api.get("/Suppliers")
-            : await api.get("/Drivers");
+            ? await api.get("/api/Suppliers")
+            : await api.get("/api/Drivers");
 
         if (mounted) {
 
@@ -206,9 +206,17 @@ export default function AvailabilityBoard({
                 : item.fullName}
             </p>
 
-            <StatusChip
-              status={item.availabilityStatus}
-            />
+           <div
+  className={`px-3 py-1 rounded-full text-xs font-semibold w-fit ${
+    item.availabilityStatus === "available"
+      ? "bg-green-500/20 text-green-400"
+      : item.availabilityStatus === "busy"
+      ? "bg-orange-500/20 text-orange-400"
+      : "bg-red-500/20 text-red-400"
+  }`}
+>
+  {item.availabilityStatus}
+</div>
 
           </div>
 

@@ -11,6 +11,7 @@ import {
   MessageSquare,
   AlertTriangle,
   Settings,
+  X,
 } from "lucide-react";
 
 const navItems = [
@@ -56,26 +57,59 @@ const navItems = [
   },
 ];
 
-export default function Sidebar() {
+type SidebarProps = {
+  mobile?: boolean;
+  onClose?: () => void;
+};
+
+export default function Sidebar({
+  mobile = false,
+  onClose,
+}: SidebarProps) {
   const pathname = usePathname();
 
   return (
-    <aside className="w-[270px] h-screen bg-[#0B0F14] border-r border-white/5 flex flex-col">
+    <aside
+      className={`
+  w-[270px]
+  h-dvh
+  bg-[#0B0F14]
+  border-r
+  border-white/5
+  flex
+  flex-col
+  ${mobile ? "" : "hidden lg:flex"}
+`}
+    >
       {/* Logo */}
       <div className="px-6 py-6 border-b border-white/5">
-        <div className="flex items-center gap-3">
-          <div className="h-11 w-11 rounded-xl bg-green-500/20 flex items-center justify-center border border-green-500/30">
-            <span className="text-green-400 font-bold text-xl">A</span>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="h-11 w-11 rounded-xl bg-green-500/20 flex items-center justify-center border border-green-500/30">
+              <span className="text-green-400 font-bold text-xl">
+                A
+              </span>
+            </div>
+
+            <div>
+              <h1 className="text-white font-bold text-xl tracking-wide">
+                ALPHA
+              </h1>
+
+              <p className="text-gray-400 text-xs">
+                Mission Control
+              </p>
+            </div>
           </div>
 
-          <div>
-            <h1 className="text-white font-bold text-xl tracking-wide">
-              ALPHA
-            </h1>
-            <p className="text-gray-400 text-xs">
-              Mission Control
-            </p>
-          </div>
+          {mobile && (
+            <button
+              onClick={onClose}
+              className="lg:hidden text-gray-400 hover:text-white"
+            >
+              <X size={22} />
+            </button>
+          )}
         </div>
       </div>
 
@@ -84,14 +118,16 @@ export default function Sidebar() {
         {navItems.map((item) => {
           const Icon = item.icon;
 
-         const isActive =
+          const isActive =
   pathname === item.href ||
-  (pathname?.startsWith(item.href) ?? false);
+  (item.href !== "/" &&
+    pathname?.startsWith(`${item.href}/`));
 
           return (
             <Link
               key={item.label}
               href={item.href}
+              onClick={() => mobile && onClose?.()}
               className={`group flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-200 ${
                 isActive
                   ? "bg-green-500 text-black shadow-lg shadow-green-500/20"
@@ -100,11 +136,11 @@ export default function Sidebar() {
             >
               <Icon
                 size={20}
-                className={`${
+                className={
                   isActive
                     ? "text-black"
                     : "text-gray-400 group-hover:text-white"
-                }`}
+                }
               />
 
               <span className="font-medium text-sm">
@@ -127,6 +163,7 @@ export default function Sidebar() {
               <p className="text-white text-sm font-semibold">
                 System Status
               </p>
+
               <p className="text-green-400 text-xs mt-1">
                 All systems operational
               </p>

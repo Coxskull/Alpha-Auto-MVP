@@ -1,41 +1,41 @@
 import api from "./api";
 
 export const assignDriver = async (
-  orderId: number
+  orderId: string
 ) => {
   return api.post(
-    `/Orders/${orderId}/assign-driver`
+    `/api/Orders/${orderId}/assign-driver`
   );
 };
 
 export const assignSupplier = async (
-  orderId: number
+  orderId: string
 ) => {
   return api.post(
-    `/Orders/${orderId}/assign-supplier`
+    `/api/Orders/${orderId}/assign-supplier`
   );
 };
 
 export const markPickedUp = async (
-  orderId: number
+  orderId: string
 ) => {
   return api.post(
-    `/Orders/${orderId}/picked-up`
+    `/api/Orders/${orderId}/picked-up`
   );
 };
 
 export const markEnRoute = async (
-  orderId: number
+  orderId: string
 ) => {
   return api.post(
-    `/Orders/${orderId}/en-route`
+    `/api/Orders/${orderId}/en-route`
   );
 };
 
 export const markDelivered = async (
-  orderId: number
+  orderId: string
 ) => {
   return api.post(
-    `/Orders/${orderId}/delivered`
+    `/api/Orders/${orderId}/delivered`
   );
 };

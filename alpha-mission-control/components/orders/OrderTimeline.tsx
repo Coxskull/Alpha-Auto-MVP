@@ -14,7 +14,13 @@ export default function OrderTimeline({
 }: Props) {
   return (
     <div className="w-full">
-      <div className="flex items-center justify-between gap-2">
+      <div className="
+  flex
+  items-center
+  gap-2
+  overflow-x-auto
+  pb-2
+">
         {steps.map((step, index) => {
           const isLast =
             index === steps.length - 1;
@@ -22,7 +28,9 @@ export default function OrderTimeline({
           return (
             <div
               key={step.label}
-              className="flex items-center flex-1"
+              className="flex
+  items-center
+  min-w-[120px]"
             >
               {/* Node */}
               <div className="flex flex-col items-center min-w-[70px]">

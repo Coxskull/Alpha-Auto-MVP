@@ -250,23 +250,23 @@ export default function OrdersShow() {
                   </Typography>
 
                   <Typography mb={2}>
-                    🏪 Supplier Assigned
+                    🏪 supplier_assigned
                   </Typography>
 
                   <Typography mb={2}>
-                    🛵 Driver Assigned
+                    🛵 driver_assigned
                   </Typography>
 
                   <Typography mb={2}>
-                    📦 Picked Up
+                    📦 picked_up
                   </Typography>
 
                   <Typography mb={2}>
-                    🚚 En Route
+                    🚚 en_route
                   </Typography>
 
                   <Typography>
-                    ✅ Delivered
+                    ✅ delivered
                   </Typography>
 
                 </Box>

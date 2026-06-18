@@ -1,349 +1,182 @@
 "use client";
 
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  Box,
-  Typography,
-  Chip,
-  Button,
-  Stack,
-  Divider,
-} from "@mui/material";
-
-import {
-  Store,
-  CheckCircle,
-} from "@mui/icons-material";
-
-import api from "../../services/api";
-
-// =====================================================
-// TYPES
-// =====================================================
-
-type Supplier = {
-  id: string;
-  name: string;
-  status: string;
-};
+import { Supplier } from "@/types/dashboard";
 
 type Props = {
   open: boolean;
-
-  onClose: () => void;
-
-  orderId: string;
-
   suppliers: Supplier[];
-
-  onAssigned?: () => void;
+  territory: string;
+  onClose: () => void;
+  onAssign: (supplierId: string) => void;
 };
-
-// =====================================================
-// STATUS COLORS
-// =====================================================
-
-const getStatusColor = (
-  status: string
-) => {
-
-  switch (status) {
-
-    case "available":
-      return "#22C55E";
-
-    case "busy":
-      return "#EAB308";
-
-    case "closed":
-      return "#EF4444";
-
-    default:
-      return "#64748B";
-  }
-};
-
-// =====================================================
-// STATUS LABEL
-// =====================================================
-
-const getStatusLabel = (
-  status: string
-) => {
-
-  switch (status) {
-
-    case "available":
-      return "🟢 Available";
-
-    case "busy":
-      return "🟡 Busy";
-
-    case "closed":
-      return "🔴 Closed";
-
-    default:
-      return status;
-  }
-};
-
-// =====================================================
-// COMPONENT
-// =====================================================
 
 export default function AssignSupplierModal({
   open,
-  onClose,
-  orderId,
   suppliers,
-  onAssigned,
+  territory,
+  onClose,
+  onAssign,
 }: Props) {
+  if (!open) return null;
 
-  // =====================================================
-  // ASSIGN SUPPLIER
-  // =====================================================
+ const scoredSuppliers = suppliers
+  .filter(
+    (s) =>
+      s.availability?.toLowerCase() ===
+      "available"
+  )
+  .map((supplier) => {
+    const territoryMatch =
+      supplier.territory?.toLowerCase() ===
+      territory.toLowerCase();
 
-  const handleAssignSupplier =
-    async (
-      supplierId: string
-    ) => {
+    const score =
+      (territoryMatch ? 100 : 0) +
+      (supplier.responseRate ?? 100) -
+      supplier.currentWorkload * 5;
 
-      try {
-
-        await api.post(
-          `/Orders/${orderId}/assign-supplier?supplierId=${supplierId}`
-        );
-
-        if (onAssigned) {
-          onAssigned();
-        }
-
-        onClose();
-
-      } catch (error) {
-
-        console.error(error);
-
-        alert(
-          "Failed to assign supplier"
-        );
-      }
+    return {
+      ...supplier,
+      territoryMatch,
+      score,
     };
-
-  // =====================================================
-  // UI
-  // =====================================================
+  })
+  .sort((a, b) => b.score - a.score);
 
   return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+      <div className="w-full max-w-3xl rounded-3xl border border-white/10 bg-[#111827] p-6">
 
-    <Dialog
-      open={open}
-      onClose={onClose}
-      fullWidth
-      maxWidth="sm"
-      PaperProps={{
-        sx: {
-          backgroundColor: "#0F172A",
-          border:
-            "1px solid #1E293B",
-          borderRadius: "20px",
-          color: "white",
-        },
-      }}
-    >
-
-      {/* ========================================= */}
-      {/* HEADER */}
-      {/* ========================================= */}
-
-      <DialogTitle>
-
-        <Box
-          display="flex"
-          alignItems="center"
-          gap={2}
-        >
-
-          <Store
-            sx={{
-              color: "#3B82F6",
-            }}
-          />
-
-          <Box>
-
-            <Typography
-              variant="h6"
-              fontWeight="bold"
-            >
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-xl font-bold text-white">
               Assign Supplier
-            </Typography>
+            </h2>
 
-            <Typography
-              variant="body2"
-              color="#94A3B8"
-            >
-              Select supplier for this order
-            </Typography>
+            <p className="text-sm text-gray-400">
+              Territory-aware supplier recommendations
+            </p>
+          </div>
 
-          </Box>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-white"
+          >
+            ✕
+          </button>
+        </div>
 
-        </Box>
-
-      </DialogTitle>
-
-      {/* ========================================= */}
-      {/* CONTENT */}
-      {/* ========================================= */}
-
-      <DialogContent>
-
-        <Stack spacing={2}>
-
-          {suppliers.map(
-            (supplier) => (
-
-              <Box
+        {/* Supplier List */}
+        <div className="space-y-4 max-h-[550px] overflow-y-auto">
+          {scoredSuppliers.length === 0 ? (
+            <div className="rounded-2xl border border-white/5 bg-[#0B0F14] p-6 text-center">
+              <p className="text-gray-400">
+                No available suppliers.
+              </p>
+            </div>
+          ) : (
+            scoredSuppliers.map((supplier, index) => (
+              <div
                 key={supplier.id}
-                sx={{
-                  border:
-                    "1px solid #1E293B",
-
-                  borderRadius: "16px",
-
-                  p: 2,
-
-                  backgroundColor:
-                    "#111827",
-
-                  transition:
-                    "all 0.3s ease",
-
-                  "&:hover": {
-                    borderColor:
-                      "#3B82F6",
-
-                    transform:
-                      "translateY(-2px)",
-                  },
-                }}
+                className={`
+                  rounded-2xl
+                  border
+                  p-5
+                  ${
+                    index === 0
+                      ? "border-green-500/40 bg-green-500/5"
+                      : "border-white/5 bg-[#0B0F14]"
+                  }
+                `}
               >
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
 
-                {/* =============================== */}
-                {/* SUPPLIER INFO */}
-                {/* =============================== */}
+                  <div>
 
-                <Box
-                  display="flex"
-                  justifyContent="space-between"
-                  alignItems="center"
-                >
+                    {index === 0 && (
+                      <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-green-500/20 px-3 py-1 text-xs font-bold text-green-400">
+                        ⭐ Recommended Match
+                      </div>
+                    )}
 
-                  <Box>
-
-                    <Typography
-                      fontWeight="bold"
-                      color="white"
-                    >
+                    <h3 className="text-lg font-semibold text-white">
                       {supplier.name}
-                    </Typography>
+                    </h3>
+                    <div className="flex gap-2 mt-2 flex-wrap">
 
-                    <Chip
-                      label={getStatusLabel(
-                        supplier.status
-                      )}
+  {supplier.territoryMatch && (
+    <span className="px-2 py-1 rounded-full text-xs bg-green-500/20 text-green-400">
+      Territory Match
+    </span>
+  )}
 
-                      sx={{
-                        mt: 1,
+  <span className="px-2 py-1 rounded-full text-xs bg-blue-500/20 text-blue-400">
+    Score {supplier.score}
+  </span>
 
-                        backgroundColor:
-                          getStatusColor(
-                            supplier.status
-                          ),
+</div>
 
-                        color: "white",
+                    <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2">
 
-                        fontWeight:
-                          "bold",
-                      }}
-                    />
+                      <p className="text-sm text-gray-400">
+                        Availability:
+                        <span className="ml-2 text-green-400">
+                          {supplier.availability}
+                        </span>
+                      </p>
 
-                  </Box>
+                      <p className="text-sm text-gray-400">
+                        Territory:
+                        <span className="ml-2 text-white">
+                          {supplier.territory}
+                        </span>
+                      </p>
 
-                  {/* =========================== */}
-                  {/* ASSIGN BUTTON */}
-                  {/* =========================== */}
+                      <p className="text-sm text-gray-400">
+                        Current Workload:
+                        <span className="ml-2 text-white">
+                          {supplier.currentWorkload}
+                        </span>
+                      </p>
 
-                  <Button
-                    variant="contained"
+                      <p className="text-sm text-gray-400">
+                        Response Rate:
+                        <span className="ml-2 text-white">
+                          {supplier.responseRate ?? 100}%
+                        </span>
+                      </p>
 
-                    startIcon={
-                      <CheckCircle />
-                    }
+                    </div>
+                  </div>
 
-                    disabled={
-                      supplier.status !==
-                      "available"
-                    }
-
+                  <button
                     onClick={() =>
-                      handleAssignSupplier(
-                        supplier.id
+                      onAssign(
+                        supplier.id.toString()
                       )
                     }
-
-                    sx={{
-                      backgroundColor:
-                        "#2563EB",
-
-                      borderRadius:
-                        "12px",
-
-                      fontWeight:
-                        "bold",
-
-                      px: 3,
-
-                      "&:hover": {
-                        backgroundColor:
-                          "#1D4ED8",
-                      },
-                    }}
+                    className="bg-green-500 hover:bg-green-400 text-black font-semibold px-5 py-3 rounded-xl transition-all"
                   >
                     Assign
-                  </Button>
+                  </button>
 
-                </Box>
-
-              </Box>
-            )
+                </div>
+              </div>
+            ))
           )}
+        </div>
 
-        </Stack>
+        <div className="mt-6 flex justify-end">
+          <button
+            onClick={onClose}
+            className="rounded-xl border border-white/10 px-5 py-3 text-gray-300 hover:bg-white/5"
+          >
+            Close
+          </button>
+        </div>
 
-        {/* ========================================= */}
-        {/* FOOTER NOTE */}
-        {/* ========================================= */}
-
-        <Divider
-          sx={{
-            my: 3,
-            borderColor: "#334155",
-          }}
-        />
-
-        <Typography
-          variant="body2"
-          color="#94A3B8"
-        >
-          ⚠️ Only available suppliers
-          can be assigned to orders.
-        </Typography>
-
-      </DialogContent>
-
-    </Dialog>
+      </div>
+    </div>
   );
 }

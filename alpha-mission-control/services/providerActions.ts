@@ -10,7 +10,7 @@ import api from "./api";
 export const getDrivers = async () => {
 
   const response =
-    await api.get("/Drivers");
+    await api.get("/api/Drivers");
 
   return response.data;
 };
@@ -21,11 +21,11 @@ export const getDrivers = async () => {
 // ======================================================
 
 export const getDriverById = async (
-  id: number
+  id: string
 ) => {
 
   const response =
-    await api.get(`/Drivers/${id}`);
+    await api.get(`/api/Drivers/${id}`);
 
   return response.data;
 };
@@ -38,7 +38,7 @@ export const getDriverById = async (
 export const getSuppliers = async () => {
 
   const response =
-    await api.get("/Suppliers");
+    await api.get("/api/Suppliers");
 
   return response.data;
 };
@@ -49,11 +49,11 @@ export const getSuppliers = async () => {
 // ======================================================
 
 export const getSupplierById = async (
-  id: number
+  id: string
 ) => {
 
   const response =
-    await api.get(`/Suppliers/${id}`);
+    await api.get(`/api/Suppliers/${id}`);
 
   return response.data;
 };

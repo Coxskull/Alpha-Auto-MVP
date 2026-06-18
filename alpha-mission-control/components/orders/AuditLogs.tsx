@@ -32,19 +32,19 @@ const getActionColor = (
 
   switch (action) {
 
-    case "Supplier Assigned":
+    case "supplier_assigned":
       return "#3B82F6";
 
-    case "Driver Assigned":
+    case "driver_assigned":
       return "#6366F1";
 
-    case "Picked Up":
+    case "picked_up":
       return "#F97316";
 
-    case "En Route":
+    case "en_route":
       return "#A855F7";
 
-    case "Delivered":
+    case "delivered":
       return "#22C55E";
 
     case "Proof Uploaded":

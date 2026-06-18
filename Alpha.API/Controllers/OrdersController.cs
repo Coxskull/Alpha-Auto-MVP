@@ -97,15 +97,15 @@ public class OrdersController : ControllerBase
                     o.Status == "pending"
                         ? "Pending"
                     : o.Status == "supplier_assigned"
-                        ? "Supplier Assigned"
+                        ? "supplier_assigned"
                     : o.Status == "driver_assigned"
-                        ? "Driver Assigned"
+                        ? "driver_assigned"
                     : o.Status == "picked_up"
-                        ? "Picked Up"
+                        ? "picked_up"
                     : o.Status == "en_route"
-                        ? "En Route"
+                        ? "en_route"
                     : o.Status == "delivered"
-                        ? "Delivered"
+                        ? "delivered"
                     : o.Status,
 
                 SupplierName =
@@ -183,12 +183,12 @@ public class OrdersController : ControllerBase
 
         await AddAuditLog(
             id,
-            $"Supplier Assigned: {supplier.Name}"
+            $"supplier_assigned: {supplier.Name}"
         );
 
         return Ok(new
         {
-            message = "Supplier assigned successfully",
+            message = "supplier_assigned successfully",
             supplier = supplier.Name,
             supplierId = supplier.Id,
             orderStatus = order.Status
@@ -237,12 +237,12 @@ public class OrdersController : ControllerBase
 
         await AddAuditLog(
             id,
-            $"Driver Assigned: {driver.FullName}"
+            $"driver_assigned: {driver.FullName}"
         );
 
         return Ok(new
         {
-            message = "Driver assigned successfully",
+            message = "driver_assigned successfully",
             driver = driver.FullName,
             driverId = driver.Id,
             orderStatus = order.Status
@@ -250,7 +250,7 @@ public class OrdersController : ControllerBase
     }
 
     // =========================================================
-    // PICKED UP
+    // picked_up
     // POST: /api/Orders/{id}/picked-up
     // =========================================================
 
@@ -270,17 +270,17 @@ public class OrdersController : ControllerBase
 
         await AddStatusHistory(id, "picked_up");
 
-        await AddAuditLog(id, "Order Picked Up");
+        await AddAuditLog(id, "Order picked_up");
 
         return Ok(new
         {
-            message = "Order marked as picked up",
+            message = "Order marked as picked_up",
             status = order.Status
         });
     }
 
     // =========================================================
-    // EN ROUTE
+    // en_route
     // POST: /api/Orders/{id}/en-route
     // =========================================================
 
@@ -300,11 +300,11 @@ public class OrdersController : ControllerBase
 
         await AddStatusHistory(id, "en_route");
 
-        await AddAuditLog(id, "Order En Route");
+        await AddAuditLog(id, "Order en_route");
 
         return Ok(new
         {
-            message = "Order is now en route",
+            message = "Order is now en_route",
             status = order.Status
         });
     }
@@ -314,7 +314,7 @@ public class OrdersController : ControllerBase
     // POST: /api/Orders/{id}/delivered
     // =========================================================
     [HttpPost("{id}/delivered")]
-    public async Task<IActionResult> Delivered(Guid id)
+    public async Task<IActionResult> delivered(Guid id)
     {
         var order = await _context.Orders
             .Include(o => o.Driver)
@@ -344,7 +344,7 @@ public class OrdersController : ControllerBase
 
         await AddStatusHistory(id, "delivered");
 
-        await AddAuditLog(id, "Order Delivered");
+        await AddAuditLog(id, "Order delivered");
 
         return Ok(new
         {

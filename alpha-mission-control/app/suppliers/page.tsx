@@ -16,7 +16,7 @@ export default function SuppliersPage() {
   const fetchSuppliers = async () => {
     try {
       const response = await api.get(
-        "/Suppliers"
+        "/api/Suppliers"
       );
 
       setSuppliers(response.data);
@@ -59,12 +59,12 @@ export default function SuppliersPage() {
               className="bg-[#111827] rounded-3xl p-6 border border-white/5"
             >
               <h2 className="text-white text-xl font-bold">
-                {supplier.businessName || supplier.name}
+                {supplier.name}
               </h2>
 
               <div className="mt-4">
                 <span className="px-3 py-1 rounded-full text-sm bg-green-500/10 text-green-400 border border-green-500/20">
-                  {supplier.status}
+                  {supplier.availability}
                 </span>
               </div>
             </div>
