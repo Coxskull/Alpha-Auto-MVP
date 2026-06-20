@@ -15,7 +15,7 @@
     "@mui/material": "^7.3.11",
     "axios": "^1.17.0",
     "framer-motion": "^12.40.0",
-    "lucide-react": "^1.17.0",
+    "lucide-react": "^1.21.0",
     "next": "16.2.7",
     "ra-data-json-server": "^5.14.7",
     "ra-data-simple-rest": "^5.14.7",
