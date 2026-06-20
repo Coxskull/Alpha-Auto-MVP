@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 
-import Sidebar from "../components/layout/Sidebar";
-import Topbar from "../components/layout/Topbar";
+import Sidebar from "./layout/Sidebar";
+import Topbar from "./layout/Topbar";
 
 type Props = {
   children: React.ReactNode;

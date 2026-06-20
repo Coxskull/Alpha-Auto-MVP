@@ -34,18 +34,19 @@ const [alerts, setAlerts] =
 
   useEffect(() => {
     const loadAlerts = async () => {
-      try {
-        const response =
-  await api.get<Alert[]>("/api/Alerts");
+  try {
+    const response =
+      await api.get<Alert[]>("/api/Alerts");
 
-        setAlerts(response.data);
-      } catch (error) {
-        console.error(
-          "Failed to load alerts",
-          error
-        );
-      }
-    };
+    setAlerts(response.data);
+  } catch (error) {
+    console.warn(
+      "Alerts endpoint not available yet"
+    );
+
+    setAlerts([]);
+  }
+};
 
     loadAlerts();
 

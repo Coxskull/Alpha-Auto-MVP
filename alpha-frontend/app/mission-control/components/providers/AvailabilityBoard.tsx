@@ -10,7 +10,7 @@ import {
   Store,
 } from "lucide-react";
 
-import api from "../../services/api";
+import api from "@/services/api";
 
 
 interface Supplier {
@@ -46,9 +46,9 @@ export default function AvailabilityBoard({
       try {
 
         const response =
-          type === "suppliers"
-            ? await api.get("/api/Suppliers")
-            : await api.get("/api/Drivers");
+  type === "suppliers"
+    ? await api.get("/api/Suppliers/available")
+    : await api.get("/api/Drivers/available");
 
         if (mounted) {
 
