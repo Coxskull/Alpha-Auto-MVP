@@ -1,5 +1,4 @@
 import "@/app/globals.css";
-import AppShell from "@/components/layout/AppShell";
 
 export default function RootLayout({
   children,
@@ -7,12 +6,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html>
-      <body>
-        <AppShell>
-          {children}
-        </AppShell>
-      </body>
+    <html lang="en">
+      <body>{children}</body>
     </html>
   );
 }
