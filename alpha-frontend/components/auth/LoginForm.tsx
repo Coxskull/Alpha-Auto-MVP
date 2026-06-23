@@ -4,7 +4,12 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/services/api";
 
-type Role = "admin" | "customer" | "driver" | "provider";
+type Role =
+  | "admin"
+  | "customer"
+  | "driver"
+  | "provider"
+  | "mechanic";
 
 type Props = {
   role: Role;
