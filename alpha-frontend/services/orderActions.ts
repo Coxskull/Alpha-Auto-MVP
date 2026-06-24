@@ -39,3 +39,11 @@ export const markDelivered = async (
     `/api/Orders/${orderId}/delivered`
   );
 };
+
+export async function confirmPayment(orderId: string) {
+  return api.post(`/api/Orders/${orderId}/confirm-payment`, null, {
+    params: {
+      transactionReference: `MANUAL-${Date.now()}`,
+    },
+  });
+};

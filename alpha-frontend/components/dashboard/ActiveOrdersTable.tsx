@@ -15,6 +15,7 @@ import {
   markPickedUp,
   markEnRoute,
   markDelivered,
+  confirmPayment,
 } from "@/services/orderActions";
 
 type TimelineStep = {
@@ -225,6 +226,9 @@ export default function ActiveOrdersTable() {
           order.status === "en_route" ||
           order.status === "arrived";
 
+          const canConfirmPayment =
+  order.status === "payment_pending";
+
         return (
           <div
             key={order.id}
@@ -387,7 +391,18 @@ export default function ActiveOrdersTable() {
               >
                 View Details
               </button>
-
+<button
+  onClick={() =>
+    handleAction(
+      () => confirmPayment(order.id),
+      order.id
+    )
+  }
+  disabled={isBusy || !canConfirmPayment}
+  className="bg-yellow-500 hover:bg-yellow-400 text-black font-semibold px-5 py-2.5 rounded-xl transition-all disabled:opacity-40"
+>
+  {isBusy ? "Working..." : "Confirm Payment"}
+</button>
               <button
                 onClick={() =>
                   handleAction(
