@@ -11,7 +11,7 @@ export default function CheckoutPage() {
   const [pickupAddress, setPickupAddress] = useState("");
   const [deliveryAddress, setDeliveryAddress] = useState("");
   const [itemDescription, setItemDescription] = useState("");
-  const [zone, setZone] = useState("34");
+  const [zone] = useState("34");
 
   const [itemSubtotal, setItemSubtotal] = useState(0);
   const [selectedCurrency, setSelectedCurrency] = useState("USD");

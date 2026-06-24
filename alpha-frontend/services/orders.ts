@@ -1,13 +1,18 @@
 import api from "./api";
 import { Order, ProviderOrder } from "@/types/order";
 
-export async function createOrder(data: {
+export type CreateOrderPayload = {
   customerName: string;
   pickupAddress: string;
   deliveryAddress: string;
   itemDescription: string;
   zone: string;
-}) {
+  itemSubtotal: number;
+  currency: string;
+  paymentMethod: string;
+};
+
+export async function createOrder(data: CreateOrderPayload) {
   const response = await api.post("/api/Orders", data);
   return response.data;
 }
@@ -18,7 +23,7 @@ export async function getOrders(): Promise<Order[]> {
 }
 
 export async function getOrder(id: string): Promise<Order> {
-  const response = await api.get(`/api/Orders/${id}/details`);
+  const response = await api.get(`/api/Orders/${id}`);
   return response.data;
 }
 
@@ -28,18 +33,27 @@ export async function getAllOrders(): Promise<Order[]> {
 
 export async function getDriverOrders(driverId: string): Promise<Order[]> {
   const orders = await getAllOrders();
+
   return orders.filter(
     (order) =>
       order.driverId === driverId &&
       order.status !== "delivered" &&
+      order.status !== "completed" &&
       order.status !== "cancelled"
   );
 }
 
 export async function getDriverHistory(driverId: string): Promise<Order[]> {
   const orders = await getAllOrders();
+
   return orders.filter(
-    (order) => order.driverId === driverId && order.status === "delivered"
+    (order) =>
+      order.driverId === driverId &&
+      (
+        order.status === "delivered" ||
+        order.status === "completed" ||
+        order.status === "proof_uploaded"
+      )
   );
 }
 
@@ -67,9 +81,9 @@ export const getProviderOrders = async (): Promise<ProviderOrder[]> => {
 };
 
 export const acceptOrder = async (orderId: string) => {
-  return api.post(`/api/providers/orders/${orderId}/accept`);
+  return api.post(`/api/Orders/${orderId}/supplier-accept`);
 };
 
 export const markReadyForPickup = async (orderId: string) => {
-  return api.post(`/api/providers/orders/${orderId}/ready`);
+  return api.post(`/api/Orders/${orderId}/ready-for-pickup`);
 };
