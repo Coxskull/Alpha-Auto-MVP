@@ -23,7 +23,7 @@ export async function getOrders(): Promise<Order[]> {
 }
 
 export async function getOrder(id: string): Promise<Order> {
-  const response = await api.get(`/api/Orders/${id}`);
+  const response = await api.get(`/api/Orders/${id}/details`);
   return response.data;
 }
 
