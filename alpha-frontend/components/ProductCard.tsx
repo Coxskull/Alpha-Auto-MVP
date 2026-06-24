@@ -1,5 +1,6 @@
 "use client";
 
+import { ShoppingCart } from "lucide-react";
 import { Product } from "@/types/product";
 
 interface Props {
@@ -7,36 +8,40 @@ interface Props {
   onAddToCart: (product: Product) => void;
 }
 
-export default function ProductCard({
-  product,
-  onAddToCart,
-}: Props) {
+export default function ProductCard({ product, onAddToCart }: Props) {
   return (
-    <div className="bg-[#0F172A] border border-[#1E293B] rounded-2xl overflow-hidden">
-      <img
-        src={product.imageUrl}
-        alt={product.name}
-        className="w-full h-40 object-cover"
-      />
+    <div className="bg-[#0f172a] border border-white/10 rounded-3xl overflow-hidden shadow-xl">
+      <div className="relative">
+        <img
+          src={product.imageUrl || "/placeholder-part.png"}
+          alt={product.name}
+          className="w-full h-40 object-cover"
+        />
+
+        <span className="absolute top-3 left-3 bg-black/70 text-white text-xs px-3 py-1 rounded-full">
+          {product.brand}
+        </span>
+      </div>
 
       <div className="p-4">
-        <p className="text-xs text-gray-400">
-          {product.brand}
-        </p>
-
-        <h3 className="text-white font-semibold">
+        <h3 className="font-bold text-white line-clamp-2 min-h-[48px]">
           {product.name}
         </h3>
 
-        <p className="text-green-400 font-bold mt-2">
-          ₱{product.price}
+        <p className="text-xs text-slate-400 mt-1">
+          In stock
+        </p>
+
+        <p className="text-emerald-400 font-black text-lg mt-3">
+          ${Number(product.price).toFixed(2)}
         </p>
 
         <button
           onClick={() => onAddToCart(product)}
-          className="mt-4 w-full bg-green-600 hover:bg-green-500 text-white py-2 rounded-xl"
+          className="mt-4 w-full bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-3 rounded-2xl flex items-center justify-center gap-2"
         >
-          Add To Cart
+          <ShoppingCart size={18} />
+          Add
         </button>
       </div>
     </div>
