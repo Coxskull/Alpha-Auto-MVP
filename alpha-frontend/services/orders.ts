@@ -17,8 +17,8 @@ export async function createOrder(data: CreateOrderPayload) {
   return response.data;
 }
 
-export async function getOrder(id: string): Promise<Order> {
-  const response = await api.get(`/api/Orders/${id}`);
+export async function getOrders(): Promise<Order[]> {
+  const response = await api.get("/api/Orders");
   return response.data;
 }
 
