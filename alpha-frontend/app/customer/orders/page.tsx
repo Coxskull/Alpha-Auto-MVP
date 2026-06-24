@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-
+import BottomNavigation from "@/components/BottomNavigation";
 import { getOrders } from "@/services/orders";
 import { Order } from "@/types/order";
 
-export default function OrdersPage() {
+export default function CustomerOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
 
   useEffect(() => {
@@ -19,42 +19,38 @@ export default function OrdersPage() {
   }, []);
 
   return (
-    <main className="p-4 pb-24">
-      <h1 className="text-2xl font-bold mb-4">
-        My Orders
-      </h1>
+    <main className="min-h-screen bg-[#020617] text-white pb-24 p-4">
+      <div className="max-w-md mx-auto">
+        <h1 className="text-2xl font-black mb-6">My Orders</h1>
 
-      <div className="space-y-4">
-        {orders.map((order) => (
-          <Link
-            key={order.id}
-            href={`/tracking/${order.id}`}
-            className="block bg-white border rounded-xl p-4"
-          >
-            <div className="flex justify-between">
-              <span className="font-semibold">
-                {order.orderNumber}
-              </span>
+        {orders.length === 0 ? (
+          <p className="text-slate-400">No orders yet.</p>
+        ) : (
+          <div className="space-y-4">
+            {orders.map((order) => (
+              <Link
+                key={order.id}
+                href={`/customer/tracking/${order.id}`}
+                className="block bg-[#0f172a] border border-white/10 rounded-3xl p-5"
+              >
+                <p className="text-sm text-slate-400">
+                  {order.orderNumber}
+                </p>
 
-              <span className="text-green-600">
-                {order.status}
-              </span>
-            </div>
+                <h2 className="font-bold mt-1">
+                  {order.itemDescription}
+                </h2>
 
-            <p className="text-sm text-gray-500 mt-2">
-              {order.itemDescription}
-            </p>
-
-            <p className="text-sm mt-1">
-              Driver: {order.driverName ?? "Pending"}
-            </p>
-
-            <p className="text-sm">
-              Supplier: {order.supplierName ?? "Pending"}
-            </p>
-          </Link>
-        ))}
+                <p className="text-emerald-400 mt-3">
+                  {order.status}
+                </p>
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
+
+      <BottomNavigation />
     </main>
   );
 }
