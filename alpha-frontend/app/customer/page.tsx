@@ -81,18 +81,18 @@ export default function HomePage() {
   }, [products, search]);
 
   function handleAddToCart(product: Product) {
-    addToCart({
-      productId: product.id,
-      productName: product.name,
-      price: product.price,
-      quantity: 1,
-      imageUrl: product.imageUrl,
-    });
+  const updatedCart = addToCart({
+    productId: product.id,
+    productName: product.name,
+    price: product.price,
+    quantity: 1,
+    imageUrl: product.imageUrl,
+  });
 
-    updateCartCount();
+  setCartCount(updatedCart.length);
 
-    alert(`${product.name} added to cart`);
-  }
+  alert(`${product.name} added to cart`);
+}
 
   if (loading) {
     return (
@@ -124,7 +124,7 @@ export default function HomePage() {
           </div>
 
           <a
-            href="/cart"
+            href="/customer/cart"
             className="relative h-10 w-10 rounded-xl bg-emerald-500 text-black flex items-center justify-center"
           >
             <ShoppingCart size={20} />

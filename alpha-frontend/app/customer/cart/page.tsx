@@ -3,36 +3,17 @@
 import { useState } from "react";
 import Link from "next/link";
 import BottomNavigation from "@/components/BottomNavigation";
-
-type CartItem = {
-  productId: string;
-  productName: string;
-  price: number;
-  quantity: number;
-  imageUrl?: string;
-};
-
-function getInitialCart(): CartItem[] {
-  if (typeof window === "undefined") return [];
-
-  return JSON.parse(
-    window.localStorage.getItem("cart") || "[]"
-  );
-}
+import {
+  getCart,
+  removeFromCart,
+  CartItem,
+} from "@/services/cart";
 
 export default function CartPage() {
-  const [cart, setCart] = useState<CartItem[]>(getInitialCart);
+  const [cart, setCart] = useState<CartItem[]>(getCart);
 
   function removeItem(productId: string) {
-    const updated = cart.filter(
-      (item) => item.productId !== productId
-    );
-
-    window.localStorage.setItem(
-      "cart",
-      JSON.stringify(updated)
-    );
-
+    const updated = removeFromCart(productId);
     setCart(updated);
   }
 
@@ -45,11 +26,15 @@ export default function CartPage() {
   return (
     <main className="min-h-screen bg-[#020617] text-white pb-24 p-4">
       <div className="max-w-md mx-auto">
-        <h1 className="text-2xl font-black mb-6">My Cart</h1>
+        <h1 className="text-2xl font-black mb-6">
+          My Cart
+        </h1>
 
         {cart.length === 0 ? (
           <div className="bg-[#0f172a] rounded-3xl p-6 text-center">
-            <p className="text-slate-400">Your cart is empty.</p>
+            <p className="text-slate-400">
+              Your cart is empty.
+            </p>
 
             <Link
               href="/customer"
@@ -73,7 +58,9 @@ export default function CartPage() {
                   />
 
                   <div className="flex-1">
-                    <h2 className="font-bold">{item.productName}</h2>
+                    <h2 className="font-bold">
+                      {item.productName}
+                    </h2>
 
                     <p className="text-emerald-400 font-bold">
                       ${Number(item.price).toFixed(2)}
@@ -84,7 +71,9 @@ export default function CartPage() {
                     </p>
 
                     <button
-                      onClick={() => removeItem(item.productId)}
+                      onClick={() =>
+                        removeItem(item.productId)
+                      }
                       className="text-red-400 text-sm mt-2"
                     >
                       Remove
