@@ -1,13 +1,17 @@
 export type OrderStatus =
+  | "payment_pending"
   | "pending"
   | "supplier_assigned"
   | "supplier_accepted"
   | "ready_for_pickup"
   | "driver_assigned"
+  | "driver_accepted"
   | "picked_up"
   | "en_route"
-  | "proof_uploaded"
+  | "arrived"
   | "delivered"
+  | "proof_uploaded"
+  | "completed"
   | "cancelled";
 
 export interface Order {

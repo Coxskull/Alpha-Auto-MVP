@@ -7,19 +7,15 @@ import { useRouter } from "next/navigation";
 export default function CheckoutPage() {
   const router = useRouter();
 
-  const [customerName, setCustomerName] =
-    useState("");
-
-  const [pickupAddress, setPickupAddress] =
-    useState("");
-
-  const [deliveryAddress, setDeliveryAddress] =
-    useState("");
-
-  const [itemDescription, setItemDescription] =
-    useState("");
-
+  const [customerName, setCustomerName] = useState("");
+  const [pickupAddress, setPickupAddress] = useState("");
+  const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [itemDescription, setItemDescription] = useState("");
   const [zone, setZone] = useState("34");
+
+  const [itemSubtotal, setItemSubtotal] = useState(0);
+  const [selectedCurrency, setSelectedCurrency] = useState("USD");
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("cash");
 
   async function submit() {
     const order = await createOrder({
@@ -28,6 +24,9 @@ export default function CheckoutPage() {
       deliveryAddress,
       itemDescription,
       zone,
+      itemSubtotal,
+      currency: selectedCurrency,
+      paymentMethod: selectedPaymentMethod,
     });
 
     router.push(`/tracking/${order.id}`);
@@ -43,38 +42,58 @@ export default function CheckoutPage() {
         <input
           placeholder="Customer Name"
           value={customerName}
-          onChange={(e) =>
-            setCustomerName(e.target.value)
-          }
+          onChange={(e) => setCustomerName(e.target.value)}
           className="w-full border rounded-xl p-3"
         />
 
         <input
           placeholder="Pickup Address"
           value={pickupAddress}
-          onChange={(e) =>
-            setPickupAddress(e.target.value)
-          }
+          onChange={(e) => setPickupAddress(e.target.value)}
           className="w-full border rounded-xl p-3"
         />
 
         <input
           placeholder="Delivery Address"
           value={deliveryAddress}
-          onChange={(e) =>
-            setDeliveryAddress(e.target.value)
-          }
+          onChange={(e) => setDeliveryAddress(e.target.value)}
           className="w-full border rounded-xl p-3"
         />
 
         <input
           placeholder="Part Description"
           value={itemDescription}
-          onChange={(e) =>
-            setItemDescription(e.target.value)
-          }
+          onChange={(e) => setItemDescription(e.target.value)}
           className="w-full border rounded-xl p-3"
         />
+
+        <input
+          type="number"
+          placeholder="Item Subtotal"
+          value={itemSubtotal}
+          onChange={(e) => setItemSubtotal(Number(e.target.value))}
+          className="w-full border rounded-xl p-3"
+        />
+
+        <select
+          value={selectedCurrency}
+          onChange={(e) => setSelectedCurrency(e.target.value)}
+          className="w-full border rounded-xl p-3"
+        >
+          <option value="USD">USD - US Dollar</option>
+          <option value="MXN">MXN - Mexican Peso</option>
+        </select>
+
+        <select
+          value={selectedPaymentMethod}
+          onChange={(e) => setSelectedPaymentMethod(e.target.value)}
+          className="w-full border rounded-xl p-3"
+        >
+          <option value="cash">Cash</option>
+          <option value="card">Card</option>
+          <option value="bank">Bank Transfer</option>
+          <option value="stripe">Stripe</option>
+        </select>
 
         <button
           onClick={submit}
