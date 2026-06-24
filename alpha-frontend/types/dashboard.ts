@@ -1,34 +1,32 @@
 export type OrderStatus =
+  | "payment_pending"
   | "pending"
   | "supplier_assigned"
   | "supplier_accepted"
   | "ready_for_pickup"
   | "driver_assigned"
+  | "driver_accepted"
   | "picked_up"
   | "en_route"
-  | "cancelled"
-  | "delivered";
+  | "arrived"
+  | "delivered"
+  | "proof_uploaded"
+  | "completed"
+  | "cancelled";
 
 export type Order = {
   id: string;
   orderNumber: string;
   customerName: string;
-
   pickupAddress: string;
   deliveryAddress: string;
-
   itemDescription: string;
-
   zone: string;
-
   status: OrderStatus;
-
-  supplierId?: string;
-  driverId?: string;
-
-  supplierName?: string;
-  driverName?: string;
-
+  supplierId?: string | null;
+  supplierName?: string | null;
+  driverId?: string | null;
+  driverName?: string | null;
   createdAt?: string;
   updatedAt?: string;
 };

@@ -14,7 +14,7 @@ export type OrderStatus =
   | "completed"
   | "cancelled";
 
-export interface Order {
+export type Order = {
   id: string;
   orderNumber: string;
   customerName: string;
@@ -23,13 +23,13 @@ export interface Order {
   itemDescription: string;
   zone: string;
   status: OrderStatus;
-  supplierId?: string;
-  supplierName?: string;
-  driverId?: string;
-  driverName?: string;
+  supplierId?: string | null;
+  supplierName?: string | null;
+  driverId?: string | null;
+  driverName?: string | null;
   createdAt?: string;
   updatedAt?: string;
-}
+};
 
 export interface ProviderOrder {
   id: string;
