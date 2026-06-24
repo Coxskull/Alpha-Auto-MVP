@@ -1,6 +1,6 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import BottomNavigation from "@/components/BottomNavigation";
 
@@ -12,42 +12,28 @@ type CartItem = {
   imageUrl?: string;
 };
 
-function getCartSnapshot() {
+function getInitialCart(): CartItem[] {
   if (typeof window === "undefined") return [];
 
   return JSON.parse(
-    localStorage.getItem("cart") || "[]"
-  ) as CartItem[];
-}
-
-function subscribe(callback: () => void) {
-  window.addEventListener("storage", callback);
-  window.addEventListener("cart-updated", callback);
-
-  return () => {
-    window.removeEventListener("storage", callback);
-    window.removeEventListener("cart-updated", callback);
-  };
+    window.localStorage.getItem("cart") || "[]"
+  );
 }
 
 export default function CartPage() {
-  const cart = useSyncExternalStore(
-    subscribe,
-    getCartSnapshot,
-    () => []
-  );
+  const [cart, setCart] = useState<CartItem[]>(getInitialCart);
 
   function removeItem(productId: string) {
     const updated = cart.filter(
       (item) => item.productId !== productId
     );
 
-    localStorage.setItem(
+    window.localStorage.setItem(
       "cart",
       JSON.stringify(updated)
     );
 
-    window.dispatchEvent(new Event("cart-updated"));
+    setCart(updated);
   }
 
   const total = cart.reduce(
@@ -59,15 +45,11 @@ export default function CartPage() {
   return (
     <main className="min-h-screen bg-[#020617] text-white pb-24 p-4">
       <div className="max-w-md mx-auto">
-        <h1 className="text-2xl font-black mb-6">
-          My Cart
-        </h1>
+        <h1 className="text-2xl font-black mb-6">My Cart</h1>
 
         {cart.length === 0 ? (
           <div className="bg-[#0f172a] rounded-3xl p-6 text-center">
-            <p className="text-slate-400">
-              Your cart is empty.
-            </p>
+            <p className="text-slate-400">Your cart is empty.</p>
 
             <Link
               href="/customer"
@@ -85,18 +67,13 @@ export default function CartPage() {
                   className="bg-[#0f172a] border border-white/10 rounded-3xl p-4 flex gap-4"
                 >
                   <img
-                    src={
-                      item.imageUrl ||
-                      "/placeholder-part.png"
-                    }
+                    src={item.imageUrl || "/placeholder-part.png"}
                     alt={item.productName}
                     className="h-20 w-20 rounded-2xl object-cover"
                   />
 
                   <div className="flex-1">
-                    <h2 className="font-bold">
-                      {item.productName}
-                    </h2>
+                    <h2 className="font-bold">{item.productName}</h2>
 
                     <p className="text-emerald-400 font-bold">
                       ${Number(item.price).toFixed(2)}
@@ -107,9 +84,7 @@ export default function CartPage() {
                     </p>
 
                     <button
-                      onClick={() =>
-                        removeItem(item.productId)
-                      }
+                      onClick={() => removeItem(item.productId)}
                       className="text-red-400 text-sm mt-2"
                     >
                       Remove
