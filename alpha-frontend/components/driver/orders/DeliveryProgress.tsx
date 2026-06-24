@@ -5,16 +5,20 @@ type Props = {
 };
 
 export default function DeliveryProgress({ status }: Props) {
-  const stepMap: Record<OrderStatus, number> = {
+const stepMap: Record<OrderStatus, number> = {
+  payment_pending: 0,
   pending: 0,
   supplier_assigned: 0,
   supplier_accepted: 0,
-  ready_for_pickup: 0,
-  driver_assigned: 0,
-  picked_up: 1,
-  en_route: 2,
-  proof_uploaded: 3,
-  delivered: 3,
+  ready_for_pickup: 1,
+  driver_assigned: 1,
+  driver_accepted: 1,
+  picked_up: 2,
+  en_route: 3,
+  arrived: 4,
+  proof_uploaded: 5,
+  delivered: 5,
+  completed: 5,
   cancelled: 0,
 };
 
