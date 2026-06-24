@@ -32,32 +32,34 @@ export default function LoginForm({
   const [error, setError] = useState("");
 
   const handleLogin = async () => {
-    setError("");
-    setLoading(true);
+  setError("");
+  setLoading(true);
 
-    try {
-      const response = await api.post("/api/Auth/login", {
-        email,
-        password,
-      });
+  try {
+    const response = await api.post("/api/Auth/login", {
+      email,
+      password,
+    });
 
-      const user = response.data.user;
+    const user = response.data.user;
 
-      if (user.role !== role) {
-        setError("You are not allowed to access this panel.");
-        return;
-      }
-
-      localStorage.setItem("alpha_token", response.data.token);
-      localStorage.setItem("alpha_user", JSON.stringify(user));
-
-      router.push(redirectTo);
-    } catch {
-      setError("Invalid email or password.");
-    } finally {
+    if (user.role?.toLowerCase() !== role.toLowerCase()) {
+      setError("You are not allowed to access this panel.");
       setLoading(false);
+      return;
     }
-  };
+
+    localStorage.setItem("alpha_token", response.data.token);
+    localStorage.setItem("alpha_user", JSON.stringify(user));
+
+    router.push(redirectTo);
+    router.refresh();
+  } catch (error) {
+    console.error(error);
+    setError("Invalid email or password.");
+    setLoading(false);
+  }
+};
 
   return (
     <main className="min-h-screen bg-[#020617] text-white flex items-center justify-center px-4 py-10">
