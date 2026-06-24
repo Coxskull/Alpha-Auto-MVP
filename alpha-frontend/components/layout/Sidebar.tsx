@@ -17,42 +17,42 @@ import {
 const navItems = [
   {
     label: "Mission Control",
-    href: "/dashboard",
+    href: "/mission-control/dashboard",
     icon: LayoutDashboard,
   },
   {
     label: "Orders",
-    href: "/orders",
+    href: "/mission-control/orders",
     icon: Package,
   },
   {
     label: "Drivers",
-    href: "/drivers",
+    href: "/mission-control/drivers",
     icon: Truck,
   },
   {
     label: "Suppliers",
-    href: "/suppliers",
+    href: "/mission-control/suppliers",
     icon: Store,
   },
   {
     label: "Analytics",
-    href: "/analytics",
+    href: "/mission-control/analytics",
     icon: BarChart3,
   },
   {
     label: "Messages",
-    href: "/messages",
+    href: "/mission-control/messages",
     icon: MessageSquare,
   },
   {
     label: "Escalations",
-    href: "/escalations",
+    href: "/mission-control/escalations",
     icon: AlertTriangle,
   },
   {
     label: "Settings",
-    href: "/settings",
+    href: "/mission-control/settings",
     icon: Settings,
   },
 ];

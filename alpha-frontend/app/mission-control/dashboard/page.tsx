@@ -1,6 +1,6 @@
-import StatusCards from "../../components/dashboard/StatusCards";
-import ActiveOrdersTable from "../../components/dashboard/ActiveOrdersTable";
-import AvailabilityBoard from "../../components/providers/AvailabilityBoard";
+import StatusCards from "@/components/dashboard/StatusCards";
+import ActiveOrdersTable from "@/components/dashboard/ActiveOrdersTable";
+import AvailabilityBoard from "@/components/providers/AvailabilityBoard";
 import Link from "next/link";
 export default function DashboardPage() {
   return (
