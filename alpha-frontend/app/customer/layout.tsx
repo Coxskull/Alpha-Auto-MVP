@@ -1,13 +1,13 @@
-import "@/app/globals.css";
+import RoleGuard from "@/components/auth/RoleGuard";
 
-export default function RootLayout({
+export default function CustomerLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body>{children}</body>
-    </html>
+    <RoleGuard allowedRoles={["customer"]}>
+      {children}
+    </RoleGuard>
   );
 }

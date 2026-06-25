@@ -6,9 +6,11 @@ import api from "@/services/api";
 
 type Role =
   | "admin"
+  | "dispatcher"
   | "customer"
   | "driver"
   | "provider"
+  | "supplier"
   | "mechanic";
 
 type Props = {
