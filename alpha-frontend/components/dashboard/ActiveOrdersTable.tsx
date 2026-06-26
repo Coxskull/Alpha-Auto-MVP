@@ -209,11 +209,11 @@ export default function ActiveOrdersTable() {
         const isBusy =
           actionLoading === order.id;
 
-        const canAssignSupplier =
-          order.status === "pending";
+        const canAssignSupplier = order.status === "pending";
 
         const canAssignDriver =
-          order.status === "ready_for_pickup";
+  order.status === "supplier_assigned" ||
+  order.status === "ready_for_pickup";
 
         const canPickup =
           order.status === "driver_assigned" ||
@@ -404,25 +404,21 @@ export default function ActiveOrdersTable() {
   {isBusy ? "Working..." : "Confirm Payment"}
 </button>
               <button
-                onClick={() =>
-                  handleAction(
-                    () =>
-                      assignSupplier(
-                        order.id
-                      ),
-                    order.id
-                  )
-                }
-                disabled={
-                  isBusy ||
-                  !canAssignSupplier
-                }
-                className="bg-[#111827] hover:bg-[#1F2937] border border-white/5 text-white px-5 py-2.5 rounded-xl transition-all disabled:opacity-40"
-              >
-                {isBusy
-                  ? "Working..."
-                  : "Assign Supplier"}
-              </button>
+  disabled={isBusy || !canAssignSupplier}
+  onClick={() =>
+    handleAction(
+      () => assignSupplier(order.id),
+      order.id
+    )
+  }
+  className={`rounded-xl px-4 py-3 font-bold ${
+    canAssignSupplier && !isBusy
+      ? "bg-white text-black"
+      : "bg-slate-800 text-slate-500 cursor-not-allowed"
+  }`}
+>
+  {isBusy ? "Working..." : "Assign Supplier"}
+</button>
 
               <button
                 onClick={() =>
