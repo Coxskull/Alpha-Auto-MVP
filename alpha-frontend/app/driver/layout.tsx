@@ -1,4 +1,5 @@
 import RoleGuard from "@/components/auth/RoleGuard";
+import DriverApp from "@/components/driver/DriverApp";
 
 export default function DriverLayout({
   children,
@@ -7,7 +8,7 @@ export default function DriverLayout({
 }) {
   return (
     <RoleGuard allowedRoles={["driver"]}>
-      {children}
+      <DriverApp>{children}</DriverApp>
     </RoleGuard>
   );
 }

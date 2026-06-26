@@ -1,4 +1,3 @@
-// components/auth/RoleGuard.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -15,49 +14,57 @@ export default function RoleGuard({
   children,
 }: RoleGuardProps) {
   const router = useRouter();
-  const [allowed, setAllowed] = useState(false);
-  const [checking, setChecking] = useState(true);
+  const [status, setStatus] = useState<"checking" | "allowed" | "blocked">("checking");
 
   useEffect(() => {
+    let active = true;
+
     const checkAuth = async () => {
+      const token = localStorage.getItem("alpha_token");
+
+      if (!token) {
+        router.replace("/");
+        return;
+      }
+
       try {
-        const token = localStorage.getItem("alpha_token");
+        const response = await api.get("/api/Auth/me");
+        const role = response.data.role?.toLowerCase();
 
-        if (!token) {
-          router.replace("/");
-          return;
-        }
+        const normalizedAllowedRoles = allowedRoles.map((x) => x.toLowerCase());
 
-        const res = await api.get("/api/Auth/me");
-        const role = res.data.role?.toLowerCase();
-
-        if (!allowedRoles.includes(role)) {
+        if (!normalizedAllowedRoles.includes(role)) {
+          if (active) setStatus("blocked");
           router.replace("/unauthorized");
           return;
         }
 
-        setAllowed(true);
+        if (active) setStatus("allowed");
       } catch {
         localStorage.removeItem("alpha_token");
         localStorage.removeItem("alpha_user");
         router.replace("/");
-      } finally {
-        setChecking(false);
       }
     };
 
     checkAuth();
-  }, [allowedRoles, router]);
 
-  if (checking) {
+    return () => {
+      active = false;
+    };
+  }, [router, allowedRoles]);
+
+  if (status === "checking") {
     return (
-      <main className="min-h-screen bg-[#020617] text-white flex items-center justify-center">
+      <main className="flex min-h-screen items-center justify-center bg-[#020617] text-white">
         Checking access...
       </main>
     );
   }
 
-  if (!allowed) return null;
+  if (status === "blocked") {
+    return null;
+  }
 
   return <>{children}</>;
 }

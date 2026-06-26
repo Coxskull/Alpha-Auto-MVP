@@ -1,4 +1,5 @@
 import RoleGuard from "@/components/auth/RoleGuard";
+import AdminApp from "@/components/AdminApp";
 
 export default function MissionControlLayout({
   children,
@@ -7,7 +8,7 @@ export default function MissionControlLayout({
 }) {
   return (
     <RoleGuard allowedRoles={["admin", "dispatcher"]}>
-      {children}
+      <AdminApp>{children}</AdminApp>
     </RoleGuard>
   );
 }

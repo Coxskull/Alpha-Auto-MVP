@@ -19,15 +19,14 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (typeof window !== "undefined") {
+    const url = error.config?.url || "";
+
+    const isAuthCheck = url.includes("/api/Auth/me");
+
+    if (typeof window !== "undefined" && isAuthCheck) {
       if (error.response?.status === 401) {
         localStorage.removeItem("alpha_token");
         localStorage.removeItem("alpha_user");
-        window.location.href = "/";
-      }
-
-      if (error.response?.status === 403) {
-        window.location.href = "/unauthorized";
       }
     }
 

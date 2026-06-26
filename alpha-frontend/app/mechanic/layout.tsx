@@ -1,4 +1,5 @@
 import RoleGuard from "@/components/auth/RoleGuard";
+import MechanicApp from "@/components/mechanic/MechanicApp";
 
 export default function MechanicLayout({
   children,
@@ -7,7 +8,7 @@ export default function MechanicLayout({
 }) {
   return (
     <RoleGuard allowedRoles={["mechanic"]}>
-      {children}
+      <MechanicApp>{children}</MechanicApp>
     </RoleGuard>
   );
 }

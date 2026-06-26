@@ -15,7 +15,7 @@ export default function ProviderSidebar() {
       <nav className="space-y-2 px-3">
 
         <Link
-          href="/dashboard"
+          href="/provider/dashboard"
           className="flex items-center gap-3 p-3 rounded-lg hover:bg-[#1f2937]"
         >
           <BarChart3 size={20} />
@@ -23,7 +23,7 @@ export default function ProviderSidebar() {
         </Link>
 
         <Link
-          href="/orders"
+          href="/provider/orders"
           className="flex items-center gap-3 p-3 rounded-lg hover:bg-[#1f2937]"
         >
           <ClipboardList size={20} />
@@ -31,7 +31,7 @@ export default function ProviderSidebar() {
         </Link>
 
         <Link
-          href="/products"
+          href="/provider/products"
           className="flex items-center gap-3 p-3 rounded-lg hover:bg-[#1f2937]"
         >
           <Package size={20} />
@@ -39,7 +39,7 @@ export default function ProviderSidebar() {
         </Link>
 
         <Link
-          href="/inventory"
+          href="/provider/inventory"
           className="flex items-center gap-3 p-3 rounded-lg hover:bg-[#1f2937]"
         >
           <Warehouse size={20} />
@@ -47,7 +47,7 @@ export default function ProviderSidebar() {
         </Link>
 
         <Link
-          href="/drivers"
+          href="/provider/drivers"
           className="flex items-center gap-3 p-3 rounded-lg hover:bg-[#1f2937]"
         >
           <Truck size={20} />
@@ -55,7 +55,7 @@ export default function ProviderSidebar() {
         </Link>
 
         <Link
-          href="/settings"
+          href="/provider/settings"
           className="flex items-center gap-3 p-3 rounded-lg hover:bg-[#1f2937]"
         >
           <Settings size={20} />
