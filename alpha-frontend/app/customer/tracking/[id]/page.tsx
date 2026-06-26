@@ -17,8 +17,7 @@ const steps = [
   { key: "en_route", label: "En Route" },
   { key: "arrived", label: "Arrived" },
   { key: "delivered", label: "Delivered" },
-  { key: "proof_uploaded", label: "Proof" },
-  { key: "completed", label: "Completed" },
+
 ];
 
 export default function TrackingPage() {
