@@ -11,6 +11,10 @@ export type ServiceRequest = {
   status: string;
   finalAmount: number;
   proofImageUrl?: string;
+  providerName?: string;
+mechanicName?: string;
+driverName?: string;
+paymentStatus?: string;
 };
 
 export type MissionControlOverview = {

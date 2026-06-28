@@ -17,7 +17,7 @@ import {
   markDelivered,
   confirmPayment,
 } from "@/services/orderActions";
-
+import { assignMechanic } from "@/services/serviceRequests";
 type TimelineStep = {
   label: string;
   completed: boolean;
@@ -27,8 +27,10 @@ const orderStatusSteps = [
   "payment_pending",
   "pending",
   "supplier_assigned",
-  "supplier_accepted",
-  "ready_for_pickup",
+  "provider_accepted",
+  "mechanic_assigned",
+  "mechanic_accepted",
+  "parts_requested",
   "driver_assigned",
   "driver_accepted",
   "picked_up",
@@ -38,7 +40,6 @@ const orderStatusSteps = [
   "proof_uploaded",
   "completed",
 ];
-
 function isStepCompleted(
   currentStatus: string,
   targetStatus: string
@@ -79,13 +80,15 @@ function buildTimeline(order: Order): TimelineStep[] {
         "supplier_assigned"
       ),
     },
-    {
-      label: "Ready",
-      completed: isStepCompleted(
-        order.status,
-        "ready_for_pickup"
-      ),
-    },
+{
+  label: "Mechanic",
+  completed: isStepCompleted(order.status, "mechanic_assigned"),
+},
+{
+  label: "Parts",
+  completed: isStepCompleted(order.status, "parts_requested"),
+},
+    
     {
       label: "Driver",
       completed: isStepCompleted(
@@ -212,8 +215,9 @@ export default function ActiveOrdersTable() {
         const canAssignSupplier = order.status === "pending";
 
         const canAssignDriver =
-  order.status === "supplier_assigned" ||
-  order.status === "ready_for_pickup";
+  order.status === "mechanic_assigned" ||
+  order.status === "mechanic_accepted" ||
+  order.status === "parts_requested";
 
         const canPickup =
           order.status === "driver_assigned" ||
@@ -229,6 +233,10 @@ export default function ActiveOrdersTable() {
           const canConfirmPayment =
   order.status === "payment_pending";
 
+const canAssignMechanic =
+  order.status === "supplier_assigned" ||
+  order.status === "provider_assigned" ||
+  order.status === "provider_accepted";
         return (
           <div
             key={order.id}
@@ -308,14 +316,14 @@ export default function ActiveOrdersTable() {
               </div>
 
               <div className="rounded-2xl bg-[#111827] p-4 border border-white/5">
-                <p className="text-xs uppercase tracking-widest text-gray-500">
-                  Mechanic
-                </p>
+  <p className="text-xs uppercase tracking-widest text-gray-500">
+    Mechanic
+  </p>
 
-                <p className="text-white font-semibold mt-2">
-                  {"Service jobs use Mechanic Queue"}
-                </p>
-              </div>
+  <p className="text-white font-semibold mt-2">
+    {order.mechanicName || "Not Assigned"}
+  </p>
+</div>
 
               <div className="rounded-2xl bg-[#111827] p-4 border border-white/5">
                 <p className="text-xs uppercase tracking-widest text-gray-500">
@@ -418,6 +426,22 @@ export default function ActiveOrdersTable() {
   }`}
 >
   {isBusy ? "Working..." : "Assign Supplier"}
+</button>
+<button
+  disabled={isBusy || !canAssignMechanic}
+  onClick={() =>
+    handleAction(
+      () => assignMechanic(order.id),
+      order.id
+    )
+  }
+  className={`rounded-xl px-4 py-3 font-bold ${
+    canAssignMechanic && !isBusy
+      ? "bg-purple-500 text-white"
+      : "bg-slate-800 text-slate-500 cursor-not-allowed"
+  }`}
+>
+  {isBusy ? "Working..." : "Assign Mechanic"}
 </button>
 
               <button
