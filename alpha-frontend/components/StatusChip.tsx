@@ -18,6 +18,21 @@ export default function StatusChip({ status }: Props) {
     supplier_accepted:
       "bg-sky-500/10 text-sky-400 border-sky-500/20",
 
+    provider_assigned:
+      "bg-indigo-500/10 text-indigo-300 border-indigo-500/20",
+
+    provider_accepted:
+      "bg-violet-500/10 text-violet-300 border-violet-500/20",
+
+    mechanic_assigned:
+      "bg-purple-500/10 text-purple-400 border-purple-500/20",
+
+    mechanic_accepted:
+      "bg-fuchsia-500/10 text-fuchsia-400 border-fuchsia-500/20",
+
+    parts_requested:
+      "bg-orange-500/10 text-orange-300 border-orange-500/20",
+
     ready_for_pickup:
       "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
 
