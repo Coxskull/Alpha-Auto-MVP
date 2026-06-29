@@ -92,20 +92,20 @@ async function run(action: () => Promise<unknown>) {
                 Accept
               </button>
 
-              <button
-                onClick={() =>
-                  run(() =>
-                    requestParts(
-                      request.id,
-                      "Parts needed for repair",
-                      "Please source required parts."
-                    )
-                  )
-                }
-                className="bg-yellow-500 rounded-lg px-3 py-2 text-black"
-              >
-                Request Parts
-              </button>
+            <button
+  onClick={() =>
+    run(() =>
+      requestParts(
+        request.id,
+        "Required repair parts",
+        "Mechanic requested parts for this service job."
+      )
+    )
+  }
+  className="rounded-xl bg-yellow-400 px-4 py-2.5 font-bold text-black"
+>
+  Request Parts
+</button>
 
               <button
                 onClick={() => run(() => startRepair(request.id))}

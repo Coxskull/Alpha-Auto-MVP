@@ -8,8 +8,9 @@ import {
   MapPin,
   Truck,
   Star,
+  Wrench,
 } from "lucide-react";
-
+import Link from "next/link";
 import { getProducts } from "@/services/products";
 import { getSuppliers } from "@/services/suppliers";
 import { addToCart } from "@/services/cart";
@@ -197,7 +198,23 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+<div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
+  <Link
+    href="/customer/service-request"
+    className="rounded-2xl bg-yellow-400 text-black px-5 py-4 font-black flex items-center justify-center gap-2"
+  >
+    <Wrench size={20} />
+    Request Mechanic
+  </Link>
 
+  <Link
+    href="/customer/cart"
+    className="rounded-2xl bg-black/30 border border-white/10 text-white px-5 py-4 font-black flex items-center justify-center gap-2"
+  >
+    <ShoppingCart size={20} />
+    Request Parts
+  </Link>
+</div>
       {/* SUPPLIERS */}
       <section className="max-w-7xl mx-auto px-4 mt-6">
         <div className="flex justify-between items-center mb-4">

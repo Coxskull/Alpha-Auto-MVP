@@ -19,12 +19,12 @@ export default function CustomerServiceRequestPage() {
 
   const [loading, setLoading] = useState(false);
 
-  const update = (key: string, value: string | number) => {
+  function update(key: string, value: string | number) {
     setForm((prev) => ({
       ...prev,
       [key]: value,
     }));
-  };
+  }
 
   async function submit() {
     setLoading(true);
@@ -43,9 +43,10 @@ export default function CustomerServiceRequestPage() {
 
   return (
     <main className="min-h-screen bg-[#0B0F14] p-5 text-white">
-      <h1 className="text-2xl font-bold">Create Service Request</h1>
+      <h1 className="text-2xl font-bold">Request Mechanic</h1>
+
       <p className="text-gray-400 mt-1">
-        Request mobile mechanic service.
+        Create a mobile mechanic service request.
       </p>
 
       <div className="mt-6 space-y-4">
@@ -72,7 +73,7 @@ export default function CustomerServiceRequestPage() {
 
         <textarea
           className="w-full rounded-xl bg-[#111827] border border-white/10 p-4"
-          placeholder="Describe the issue"
+          placeholder="Describe the car issue"
           value={form.issueDescription}
           onChange={(e) => update("issueDescription", e.target.value)}
         />
@@ -102,9 +103,9 @@ export default function CustomerServiceRequestPage() {
         <button
           onClick={submit}
           disabled={loading}
-          className="w-full rounded-xl bg-green-500 py-4 font-bold text-black disabled:opacity-50"
+          className="w-full rounded-xl bg-yellow-400 py-4 font-bold text-black disabled:opacity-50"
         >
-          {loading ? "Submitting..." : "Submit Service Request"}
+          {loading ? "Submitting..." : "Submit Mechanic Request"}
         </button>
       </div>
     </main>

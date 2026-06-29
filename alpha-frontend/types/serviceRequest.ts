@@ -1,4 +1,21 @@
-// types/serviceRequest.ts
+export type ServiceRequestStatus =
+  | "new_request"
+  | "provider_needed"
+  | "provider_assigned"
+  | "provider_accepted"
+  | "mechanic_needed"
+  | "mechanic_assigned"
+  | "mechanic_accepted"
+  | "parts_requested"
+  | "driver_needed"
+  | "driver_assigned"
+  | "parts_picked_up"
+  | "parts_delivered"
+  | "repair_started"
+  | "proof_uploaded"
+  | "completed"
+  | "closed"
+  | "cancelled";
 
 export type ServiceRequest = {
   id: string;
@@ -8,13 +25,21 @@ export type ServiceRequest = {
   issueDescription: string;
   serviceAddress: string;
   zone: string;
-  status: string;
+  status: ServiceRequestStatus;
   finalAmount: number;
+  paymentStatus?: string;
   proofImageUrl?: string;
-  providerName?: string;
-mechanicName?: string;
-driverName?: string;
-paymentStatus?: string;
+
+  providerId?: string | null;
+  providerName?: string | null;
+
+  mechanicId?: string | null;
+  mechanicName?: string | null;
+
+  driverId?: string | null;
+  driverName?: string | null;
+
+  partsRequestNote?: string | null;
 };
 
 export type MissionControlOverview = {

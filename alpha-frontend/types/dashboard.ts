@@ -3,11 +3,6 @@ export type OrderStatus =
   | "pending"
   | "supplier_assigned"
   | "supplier_accepted"
-  | "provider_assigned"
-  | "provider_accepted"
-  | "mechanic_assigned"
-  | "mechanic_accepted"
-  | "parts_requested"
   | "ready_for_pickup"
   | "driver_assigned"
   | "driver_accepted"
@@ -31,12 +26,6 @@ export type Order = {
 
   supplierId?: string | null;
   supplierName?: string | null;
-
-  providerId?: string | null;
-  providerName?: string | null;
-
-  mechanicId?: string | null;
-  mechanicName?: string | null;
 
   driverId?: string | null;
   driverName?: string | null;

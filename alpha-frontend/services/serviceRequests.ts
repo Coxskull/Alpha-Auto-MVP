@@ -1,4 +1,5 @@
 import api from "@/services/api";
+import type { ServiceRequest } from "@/types/serviceRequest";
 
 export type ServiceRequestPayload = {
   customerId?: string;
@@ -12,27 +13,27 @@ export type ServiceRequestPayload = {
 };
 
 export async function createServiceRequest(data: ServiceRequestPayload) {
-  const response = await api.post("/api/ServiceRequests", data);
+  const response = await api.post<ServiceRequest>("/api/ServiceRequests", data);
   return response.data;
 }
 
 export async function getServiceRequests() {
-  const response = await api.get("/api/ServiceRequests");
+  const response = await api.get<ServiceRequest[]>("/api/ServiceRequests");
   return response.data;
 }
 
 export async function getServiceRequest(id: string) {
-  const response = await api.get(`/api/ServiceRequests/${id}`);
+  const response = await api.get<ServiceRequest>(`/api/ServiceRequests/${id}`);
   return response.data;
 }
 
 export async function getMyMechanicRequests() {
-  const response = await api.get("/api/ServiceRequests/my-mechanic");
+  const response = await api.get<ServiceRequest[]>("/api/ServiceRequests/my-mechanic");
   return response.data;
 }
 
 export async function getMyDriverRequests() {
-  const response = await api.get("/api/ServiceRequests/my-driver");
+  const response = await api.get<ServiceRequest[]>("/api/ServiceRequests/my-driver");
   return response.data;
 }
 
@@ -41,13 +42,13 @@ export async function assignProvider(id: string) {
   return response.data;
 }
 
-export async function providerAccept(id: string) {
-  const response = await api.post(`/api/ServiceRequests/${id}/provider-accept`);
+export async function assignMechanic(id: string) {
+  const response = await api.post(`/api/ServiceRequests/${id}/assign-nearest-mechanic`);
   return response.data;
 }
 
-export async function assignMechanic(id: string) {
-  const response = await api.post(`/api/ServiceRequests/${id}/assign-nearest-mechanic`);
+export async function assignDriver(id: string) {
+  const response = await api.post(`/api/ServiceRequests/${id}/assign-driver`);
   return response.data;
 }
 
@@ -64,19 +65,6 @@ export async function requestParts(
   const response = await api.post(`/api/ServiceRequests/${id}/request-parts`, {
     partDescription,
     notes,
-  });
-
-  return response.data;
-}
-
-export async function assignDriver(id: string) {
-  const response = await api.post(`/api/ServiceRequests/${id}/assign-driver`);
-  return response.data;
-}
-
-export async function updateDriverStatus(id: string, status: string) {
-  const response = await api.post(`/api/ServiceRequests/${id}/driver-status`, {
-    status,
   });
 
   return response.data;
@@ -103,6 +91,14 @@ export async function uploadRepairProof(
 export async function completeServiceRequest(id: string, finalAmount: number) {
   const response = await api.post(`/api/ServiceRequests/${id}/complete`, {
     finalAmount,
+  });
+
+  
+  return response.data;
+}
+export async function updateDriverStatus(id: string, status: string) {
+  const response = await api.post(`/api/ServiceRequests/${id}/driver-status`, {
+    status,
   });
 
   return response.data;
