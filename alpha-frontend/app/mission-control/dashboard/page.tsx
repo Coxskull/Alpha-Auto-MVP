@@ -10,6 +10,11 @@ import type { MissionControlOverview } from "@/types/serviceRequest";
 export default function MissionControlDashboardPage() {
   const [overview, setOverview] = useState<MissionControlOverview | null>(null);
 
+  async function loadOverview() {
+    const data = await getMissionControlOverview();
+    setOverview(data);
+  }
+
   useEffect(() => {
     let active = true;
 
@@ -61,7 +66,7 @@ export default function MissionControlDashboardPage() {
           parts request, and driver dispatch.
         </p>
 
-        <ServiceRequestsTable />
+        <ServiceRequestsTable onUpdated={loadOverview} />
       </section>
 
       <section className="rounded-3xl bg-[#111827] border border-white/10 p-5">
