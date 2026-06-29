@@ -31,9 +31,10 @@ export default function DriverDashboardPage() {
   }
 
   useEffect(() => {
-    let active = true;
+  let active = true;
 
-    async function load() {
+  async function load() {
+    try {
       const requestData = await getMyDriverRequests();
       const statsData = await getDriverDashboard();
 
@@ -41,20 +42,27 @@ export default function DriverDashboardPage() {
 
       setRequests(requestData);
       setStats(statsData);
-      setLoading(false);
+    } catch (error) {
+      console.error("Failed to load driver dashboard", error);
+      alert("Driver access denied. Please check driver role or driver email.");
+    } finally {
+      if (active) {
+        setLoading(false);
+      }
     }
+  }
 
+  void load();
+
+  const timer = window.setInterval(() => {
     void load();
+  }, 15000);
 
-    const timer = window.setInterval(() => {
-      void load();
-    }, 15000);
-
-    return () => {
-      active = false;
-      window.clearInterval(timer);
-    };
-  }, []);
+  return () => {
+    active = false;
+    window.clearInterval(timer);
+  };
+}, []);
 
   async function run(
     requestId: string,
