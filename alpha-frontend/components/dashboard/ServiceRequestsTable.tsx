@@ -43,6 +43,11 @@ function formatStatus(status: string) {
   return status.replaceAll("_", " ");
 }
 
+function shortId(value?: string | null) {
+  if (!value) return null;
+  return `${value.slice(0, 8)}...`;
+}
+
 export default function ServiceRequestsTable({ onUpdated }: Props) {
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -136,6 +141,21 @@ export default function ServiceRequestsTable({ onUpdated }: Props) {
           request.status === "parts_requested" ||
           request.status === "driver_needed";
 
+        const providerValue =
+          request.providerName ||
+          shortId(request.providerId) ||
+          "Not Assigned";
+
+        const mechanicValue =
+          request.mechanicName ||
+          shortId(request.mechanicId) ||
+          "Not Assigned";
+
+        const driverValue =
+          request.driverName ||
+          shortId(request.driverId) ||
+          "Not Assigned";
+
         return (
           <div
             key={request.id}
@@ -163,19 +183,22 @@ export default function ServiceRequestsTable({ onUpdated }: Props) {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <Info
+                <AssignmentInfo
                   label="Provider"
-                  value={request.providerName || "Not Assigned"}
+                  value={providerValue}
+                  assigned={Boolean(request.providerId)}
                 />
 
-                <Info
+                <AssignmentInfo
                   label="Mechanic"
-                  value={request.mechanicName || "Not Assigned"}
+                  value={mechanicValue}
+                  assigned={Boolean(request.mechanicId)}
                 />
 
-                <Info
+                <AssignmentInfo
                   label="Driver"
-                  value={request.driverName || "Not Assigned"}
+                  value={driverValue}
+                  assigned={Boolean(request.driverId)}
                 />
               </div>
             </div>
@@ -267,6 +290,42 @@ export default function ServiceRequestsTable({ onUpdated }: Props) {
           </div>
         );
       })}
+    </div>
+  );
+}
+
+function AssignmentInfo({
+  label,
+  value,
+  assigned,
+}: {
+  label: string;
+  value: string | number;
+  assigned: boolean;
+}) {
+  return (
+    <div
+      className={`rounded-2xl p-4 border ${
+        assigned
+          ? "bg-emerald-500/10 border-emerald-500/20"
+          : "bg-[#111827] border-white/5"
+      }`}
+    >
+      <p className="text-xs uppercase tracking-widest text-gray-500">
+        {label}
+      </p>
+
+      <p
+        className={`font-semibold mt-2 ${
+          assigned ? "text-emerald-300" : "text-white"
+        }`}
+      >
+        {value}
+      </p>
+
+      <p className="text-xs text-gray-500 mt-1">
+        {assigned ? "Assigned" : "Waiting"}
+      </p>
     </div>
   );
 }
