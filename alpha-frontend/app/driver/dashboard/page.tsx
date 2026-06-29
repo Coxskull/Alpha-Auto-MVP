@@ -167,23 +167,23 @@ export default function DriverDashboardPage() {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                      <Info
-                        label="Provider"
-                        value={
-                          request.providerName ||
-                          request.providerId ||
-                          "Not Assigned"
-                        }
-                      />
+                     <Info
+  label="Provider"
+  value={
+    request.providerName ||
+    request.providerId ||
+    "Not Assigned"
+  }
+/>
 
-                      <Info
-                        label="Mechanic"
-                        value={
-                          request.mechanicName ||
-                          request.mechanicId ||
-                          "Not Assigned"
-                        }
-                      />
+<Info
+  label="Mechanic"
+  value={
+    request.mechanicName ||
+    request.mechanicId ||
+    "Not Assigned"
+  }
+/>
 
                       <Info
                         label="Parts Status"

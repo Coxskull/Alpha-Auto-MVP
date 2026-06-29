@@ -19,16 +19,16 @@ export type ServiceRequestStatus =
 
 export type ServiceRequest = {
   id: string;
+  customerId?: string | null;
   customerName: string;
-  customerPhone?: string;
-  vehicleInfo?: string;
+  customerPhone?: string | null;
+  vehicleInfo?: string | null;
   issueDescription: string;
   serviceAddress: string;
   zone: string;
   status: ServiceRequestStatus;
   finalAmount: number;
   paymentStatus?: string;
-  proofImageUrl?: string;
 
   providerId?: string | null;
   providerName?: string | null;
@@ -40,6 +40,9 @@ export type ServiceRequest = {
   driverName?: string | null;
 
   partsRequestNote?: string | null;
+  proofImageUrl?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export type MissionControlOverview = {

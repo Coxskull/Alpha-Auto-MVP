@@ -142,19 +142,19 @@ export default function ServiceRequestsTable({ onUpdated }: Props) {
           request.status === "driver_needed";
 
         const providerValue =
-          request.providerName ||
-          shortId(request.providerId) ||
-          "Not Assigned";
+  request.providerName ||
+  shortId(request.providerId) ||
+  "Not Assigned";
 
-        const mechanicValue =
-          request.mechanicName ||
-          shortId(request.mechanicId) ||
-          "Not Assigned";
+const mechanicValue =
+  request.mechanicName ||
+  shortId(request.mechanicId) ||
+  "Not Assigned";
 
-        const driverValue =
-          request.driverName ||
-          shortId(request.driverId) ||
-          "Not Assigned";
+const driverValue =
+  request.driverName ||
+  shortId(request.driverId) ||
+  "Not Assigned";
 
         return (
           <div
