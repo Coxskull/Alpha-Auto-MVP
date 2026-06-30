@@ -20,6 +20,14 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const deliveryFee = 5;
+  const serviceFee = 3;
+  const tax = 0;
+  const discount = 0;
+
+  const totalAmount =
+    itemSubtotal + deliveryFee + serviceFee + tax - discount;
+
   async function submit() {
     setError("");
 
@@ -43,11 +51,14 @@ export default function CheckoutPage() {
         itemDescription,
         zone,
         itemSubtotal,
+        deliveryFee,
+        serviceFee,
+        tax,
+        discount,
+        totalAmount,
         currency: selectedCurrency,
         paymentMethod: selectedPaymentMethod,
       });
-
-      console.log("Create order response:", response);
 
       const orderId = response?.order?.id || response?.id;
 
@@ -55,40 +66,45 @@ export default function CheckoutPage() {
         throw new Error("Order was created but no order ID was returned.");
       }
 
+      if (selectedPaymentMethod === "paypal") {
+        router.push(`/customer/payment/${orderId}`);
+        return;
+      }
+
       router.push(`/customer/tracking/${orderId}`);
     } catch (err: unknown) {
       console.error("Create order failed:", err);
 
-  let message = "Failed to create order.";
+      let message = "Failed to create order.";
 
-  if (err && typeof err === "object" && "response" in err) {
-    const axiosError = err as {
-      response?: {
-        data?: {
-          message?: string;
-        } | string;
-      };
-    };
+      if (err && typeof err === "object" && "response" in err) {
+        const axiosError = err as {
+          response?: {
+            data?: {
+              message?: string;
+            } | string;
+          };
+        };
 
-    if (typeof axiosError.response?.data === "string") {
-      message = axiosError.response.data;
-    } else if (axiosError.response?.data?.message) {
-      message = axiosError.response.data.message;
+        if (typeof axiosError.response?.data === "string") {
+          message = axiosError.response.data;
+        } else if (axiosError.response?.data?.message) {
+          message = axiosError.response.data.message;
+        }
+      } else if (err instanceof Error) {
+        message = err.message;
+      }
+
+      setError(message);
+    } finally {
+      setLoading(false);
     }
-  } else if (err instanceof Error) {
-    message = err.message;
-  }
-
-  setError(message);
-}
   }
 
   return (
     <main className="min-h-screen bg-[#020617] text-white p-4">
       <div className="max-w-md mx-auto">
-        <h1 className="text-2xl font-black mb-6">
-          Checkout
-        </h1>
+        <h1 className="text-2xl font-black mb-6">Checkout</h1>
 
         {error && (
           <div className="mb-4 bg-red-500/10 border border-red-500/40 text-red-300 rounded-2xl p-4 text-sm">
@@ -129,17 +145,13 @@ export default function CheckoutPage() {
             type="number"
             placeholder="Item Subtotal"
             value={itemSubtotal}
-            onChange={(e) =>
-              setItemSubtotal(Number(e.target.value))
-            }
+            onChange={(e) => setItemSubtotal(Number(e.target.value))}
             className="w-full bg-white text-black border rounded-xl p-3"
           />
 
           <select
             value={selectedCurrency}
-            onChange={(e) =>
-              setSelectedCurrency(e.target.value)
-            }
+            onChange={(e) => setSelectedCurrency(e.target.value)}
             className="w-full bg-white text-black border rounded-xl p-3"
           >
             <option value="USD">USD - US Dollar</option>
@@ -148,23 +160,62 @@ export default function CheckoutPage() {
 
           <select
             value={selectedPaymentMethod}
-            onChange={(e) =>
-              setSelectedPaymentMethod(e.target.value)
-            }
+            onChange={(e) => setSelectedPaymentMethod(e.target.value)}
             className="w-full bg-white text-black border rounded-xl p-3"
           >
             <option value="cash">Cash</option>
-            <option value="card">Card</option>
-            <option value="bank">Bank Transfer</option>
-            <option value="stripe">Stripe</option>
+            <option value="paypal">PayPal Sandbox</option>
+            <option value="card" disabled>
+              Card - Coming Soon
+            </option>
+            <option value="bank" disabled>
+              Bank Transfer - Coming Soon
+            </option>
+            <option value="stripe" disabled>
+              Stripe - Coming Soon
+            </option>
           </select>
+
+          <div className="rounded-2xl bg-slate-900 border border-slate-700 p-4 space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span>Item Subtotal</span>
+              <span>
+                {selectedCurrency} {itemSubtotal.toFixed(2)}
+              </span>
+            </div>
+
+            <div className="flex justify-between">
+              <span>Delivery Fee</span>
+              <span>
+                {selectedCurrency} {deliveryFee.toFixed(2)}
+              </span>
+            </div>
+
+            <div className="flex justify-between">
+              <span>Service Fee</span>
+              <span>
+                {selectedCurrency} {serviceFee.toFixed(2)}
+              </span>
+            </div>
+
+            <div className="border-t border-slate-700 pt-2 flex justify-between font-black text-base">
+              <span>Total</span>
+              <span>
+                {selectedCurrency} {totalAmount.toFixed(2)}
+              </span>
+            </div>
+          </div>
 
           <button
             onClick={submit}
             disabled={loading}
             className="w-full bg-emerald-500 disabled:bg-slate-600 text-black py-3 rounded-xl font-bold"
           >
-            {loading ? "Creating Order..." : "Create Order"}
+            {loading
+              ? "Creating Order..."
+              : selectedPaymentMethod === "paypal"
+              ? "Continue to PayPal"
+              : "Create Order"}
           </button>
         </div>
       </div>

@@ -10,6 +10,11 @@ export type CreateOrderPayload = {
   itemSubtotal: number;
   currency: string;
   paymentMethod: string;
+  deliveryFee: number;
+  serviceFee: number;
+  tax: number;
+  discount: number;
+  totalAmount: number;
 };
 
 export async function createOrder(data: CreateOrderPayload) {
