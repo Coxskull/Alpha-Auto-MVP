@@ -50,7 +50,7 @@ export default function CustomerPaymentPage() {
               }
 
               await capturePayPalOrder(orderId, data.orderID);
-              router.push(`/customer/tracking/${orderId}?paid=1`);
+              router.push(`/customer/orders/${orderId}?paid=1`);
             }}
             onCancel={() => {
               setError("Payment cancelled.");
