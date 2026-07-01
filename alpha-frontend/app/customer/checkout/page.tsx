@@ -67,11 +67,11 @@ export default function CheckoutPage() {
       }
 
       if (selectedPaymentMethod === "paypal") {
-        router.push(`/customer/payment/${orderId}`);
-        return;
-      }
+  router.push(`/customer/payment/${orderId}`);
+  return;
+}
 
-      router.push(`/customer/tracking/${orderId}`);
+router.push(`/customer/orders/${orderId}`);
     } catch (err: unknown) {
       console.error("Create order failed:", err);
 
