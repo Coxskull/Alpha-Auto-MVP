@@ -1,4 +1,3 @@
-// app/customer/payment/[id]/page.tsx
 "use client";
 
 import { PayPalButtons, PayPalScriptProvider } from "@paypal/react-paypal-js";
@@ -6,17 +5,28 @@ import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { capturePayPalOrder, createPayPalOrder } from "@/services/paypal";
 
-export default function CustomerPaymentPage() {
+export default function PaymentPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
+
   const orderId = params.id;
+  const clientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID;
 
   const [error, setError] = useState("");
 
-  const clientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || "";
+  if (!clientId) {
+    return (
+      <main className="min-h-screen bg-[#020617] text-white p-6">
+        <h1 className="text-2xl font-black">PayPal Setup Missing</h1>
+        <p className="mt-4 text-red-300">
+          NEXT_PUBLIC_PAYPAL_CLIENT_ID is missing in Vercel environment variables.
+        </p>
+      </main>
+    );
+  }
 
   return (
-    <main className="min-h-screen bg-slate-950 text-white p-4">
+    <main className="min-h-screen bg-[#020617] text-white p-6">
       <div className="mx-auto max-w-md space-y-6">
         <div>
           <h1 className="text-2xl font-black">Complete Payment</h1>
@@ -31,36 +41,42 @@ export default function CustomerPaymentPage() {
           </div>
         )}
 
-        <PayPalScriptProvider
-          options={{
-            clientId,
-            currency: "USD",
-            intent: "capture",
-          }}
-        >
-          <PayPalButtons
-            style={{ layout: "vertical", shape: "rect" }}
-            createOrder={async () => {
-              return await createPayPalOrder(orderId);
+        <div className="rounded-2xl bg-white p-4">
+          <PayPalScriptProvider
+            options={{
+              clientId,
+              currency: "USD",
+              intent: "capture",
             }}
-            onApprove={async (data) => {
-              if (!data.orderID) {
-                setError("Missing PayPal order ID.");
-                return;
-              }
+          >
+            <PayPalButtons
+              style={{
+                layout: "vertical",
+                shape: "rect",
+              }}
+              createOrder={async () => {
+                return await createPayPalOrder(orderId);
+              }}
+              onApprove={async (data) => {
+                if (!data.orderID) {
+                  setError("Missing PayPal order ID.");
+                  return;
+                }
 
-              await capturePayPalOrder(orderId, data.orderID);
-              router.push(`/customer/orders/${orderId}?paid=1`);
-            }}
-            onCancel={() => {
-              setError("Payment cancelled.");
-            }}
-            onError={(err) => {
-              console.error(err);
-              setError("Payment failed. Please try again.");
-            }}
-          />
-        </PayPalScriptProvider>
+                await capturePayPalOrder(orderId, data.orderID);
+
+                router.push(`/customer/orders/${orderId}?paid=1`);
+              }}
+              onError={(err) => {
+                console.error(err);
+                setError("PayPal failed to load or process payment.");
+              }}
+              onCancel={() => {
+                setError("Payment was cancelled.");
+              }}
+            />
+          </PayPalScriptProvider>
+        </div>
       </div>
     </main>
   );
