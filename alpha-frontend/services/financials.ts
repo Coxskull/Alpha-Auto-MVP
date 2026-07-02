@@ -31,3 +31,8 @@ export async function getSupplierEarnings(supplierId: string) {
   const res = await api.get(`/api/Financials/supplier/${supplierId}/earnings`);
   return res.data;
 }
+
+export async function verifySettlement(orderId: string) {
+  const res = await api.post(`/api/Financials/orders/${orderId}/verify-settlement`);
+  return res.data;
+}

@@ -12,6 +12,7 @@ import {
   AlertTriangle,
   Settings,
   X,
+  WalletCards,
 } from "lucide-react";
 
 const navItems = [
@@ -50,6 +51,11 @@ const navItems = [
     href: "/mission-control/escalations",
     icon: AlertTriangle,
   },
+  {
+  label: "Settlement Queue",
+  href: "/mission-control/settlement-queue",
+  icon: WalletCards,
+},
   {
     label: "Settings",
     href: "/mission-control/settings",
