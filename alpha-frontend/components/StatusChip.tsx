@@ -7,6 +7,7 @@ type Props = {
 export default function StatusChip({ status }: Props) {
   const variants: Record<OrderStatus, string> = {
     payment_pending: "bg-yellow-500/10 text-yellow-300 border-yellow-500/20",
+    paid_pending_dispatch: "bg-blue-500/10 text-blue-300 border-blue-500/20",
     pending: "bg-amber-500/10 text-amber-400 border-amber-500/20",
     supplier_assigned: "bg-blue-500/10 text-blue-400 border-blue-500/20",
     supplier_accepted: "bg-sky-500/10 text-sky-400 border-sky-500/20",
@@ -22,16 +23,30 @@ export default function StatusChip({ status }: Props) {
     cancelled: "bg-red-500/10 text-red-400 border-red-500/20",
   };
 
-  const label = status
-    .replaceAll("_", " ")
-    .replace(/\b\w/g, (char) => char.toUpperCase());
+  const labels: Record<OrderStatus, string> = {
+    payment_pending: "Awaiting Payment",
+    paid_pending_dispatch: "Paid - Pending Dispatch",
+    pending: "Pending Dispatch",
+    supplier_assigned: "Supplier Assigned",
+    supplier_accepted: "Supplier Accepted",
+    ready_for_pickup: "Ready for Pickup",
+    driver_assigned: "Driver Assigned",
+    driver_accepted: "Driver Accepted",
+    picked_up: "Picked Up",
+    en_route: "En Route",
+    arrived: "Arrived",
+    delivered: "Delivered",
+    proof_uploaded: "Proof Uploaded",
+    completed: "Completed",
+    cancelled: "Cancelled",
+  };
 
   return (
     <div
       className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold ${variants[status]}`}
     >
       <div className="h-2 w-2 rounded-full bg-current animate-pulse" />
-      {label}
+      {labels[status]}
     </div>
   );
 }

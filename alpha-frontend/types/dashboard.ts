@@ -1,5 +1,6 @@
 export type OrderStatus =
   | "payment_pending"
+  | "paid_pending_dispatch"
   | "pending"
   | "supplier_assigned"
   | "supplier_accepted"
