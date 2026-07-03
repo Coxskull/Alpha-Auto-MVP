@@ -8,12 +8,20 @@ interface Props {
   onAddToCart: (product: Product) => void;
 }
 
+function getImageUrl(imageUrl?: string) {
+  if (!imageUrl) return "/placeholder-part.png";
+
+  if (imageUrl.startsWith("http")) return imageUrl;
+
+  return `${process.env.NEXT_PUBLIC_API_URL}${imageUrl}`;
+}
+
 export default function ProductCard({ product, onAddToCart }: Props) {
   return (
     <div className="bg-[#0f172a] border border-white/10 rounded-3xl overflow-hidden shadow-xl">
       <div className="relative">
         <img
-          src={product.imageUrl || "/placeholder-part.png"}
+          src={getImageUrl(product.imageUrl)}
           alt={product.name}
           className="w-full h-40 object-cover"
         />
@@ -28,9 +36,7 @@ export default function ProductCard({ product, onAddToCart }: Props) {
           {product.name}
         </h3>
 
-        <p className="text-xs text-slate-400 mt-1">
-          In stock
-        </p>
+        <p className="text-xs text-slate-400 mt-1">In stock</p>
 
         <p className="text-emerald-400 font-black text-lg mt-3">
           ${Number(product.price).toFixed(2)}
