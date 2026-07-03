@@ -44,7 +44,7 @@ function getSupplierId() {
 
   try {
     const user = JSON.parse(alphaUser);
-    return user.supplierId || user.SupplierId || user.id || user.Id || null;
+    return user.supplierId || user.SupplierId || null;
   } catch {
     return null;
   }
