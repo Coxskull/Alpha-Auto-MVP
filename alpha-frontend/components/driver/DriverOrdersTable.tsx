@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import api from "@/services/api";
 import type { Order } from "@/types/dashboard";
 import {
@@ -13,47 +13,88 @@ function formatStatus(status: string) {
   return status.replaceAll("_", " ");
 }
 
+type DriverProfile = {
+  id: string;
+  fullName?: string;
+  email?: string;
+};
+
+function getStoredUserId() {
+  const storedUser = localStorage.getItem("user");
+
+  if (storedUser) {
+    try {
+      const parsedUser = JSON.parse(storedUser);
+
+      return (
+        parsedUser?.userId ||
+        parsedUser?.id ||
+        parsedUser?.Id ||
+        parsedUser?.user?.id ||
+        null
+      );
+    } catch {
+      return null;
+    }
+  }
+
+  return (
+    localStorage.getItem("userId") ||
+    localStorage.getItem("id") ||
+    localStorage.getItem("Id")
+  );
+}
+
 export default function DriverOrdersTable() {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [driver, setDriver] = useState<DriverProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  async function fetchOrders() {
-  const storedUser = localStorage.getItem("user");
+  const getCurrentDriver = useCallback(async () => {
+    const userId = getStoredUserId();
 
-  const parsedUser = storedUser ? JSON.parse(storedUser) : null;
+    if (!userId) {
+      throw new Error("User ID not found. Please login again.");
+    }
 
-  const driverId =
-    localStorage.getItem("driverId") ||
-    parsedUser?.driverId ||
-    parsedUser?.id ||
-    localStorage.getItem("userId") ||
-    localStorage.getItem("id");
-
-  console.log("Driver ID used for orders:", driverId);
-
-  const response = await api.get<Order[]>("/api/Orders");
-
-  console.log("All orders:", response.data);
-
-  const myOrders = response.data.filter((order) => {
-    console.log("Order driver:", order.driverId, "Status:", order.status);
-
-    return (
-      String(order.driverId).toLowerCase() === String(driverId).toLowerCase() &&
-      [
-        "driver_assigned",
-        "driver_accepted",
-        "waiting_for_pickup",
-        "picked_up",
-        "en_route",
-      ].includes(order.status)
+    const response = await api.get<DriverProfile>(
+      `/api/Drivers/by-user/${userId}`
     );
-  });
 
-  setOrders(myOrders);
-  setLoading(false);
-}
+    return response.data;
+  }, []);
+
+  const fetchOrders = useCallback(async () => {
+    try {
+      const currentDriver = await getCurrentDriver();
+
+      setDriver(currentDriver);
+
+      const response = await api.get<Order[]>("/api/Orders");
+
+      const myOrders = response.data.filter((order) => {
+        return (
+          String(order.driverId).toLowerCase() ===
+            String(currentDriver.id).toLowerCase() &&
+          [
+            "driver_assigned",
+            "driver_accepted",
+            "waiting_for_pickup",
+            "picked_up",
+            "en_route",
+          ].includes(order.status)
+        );
+      });
+
+      setOrders(myOrders);
+    } catch (error) {
+      console.error("Failed to load driver orders:", error);
+      setOrders([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [getCurrentDriver]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -68,7 +109,7 @@ export default function DriverOrdersTable() {
       clearTimeout(timer);
       window.clearInterval(interval);
     };
-  }, []);
+  }, [fetchOrders]);
 
   async function run(orderId: string, action: () => Promise<unknown>) {
     try {
@@ -103,6 +144,12 @@ export default function DriverOrdersTable() {
         <p className="mt-2 text-gray-400">
           Accept assigned customer orders, mark pickup, and complete delivery.
         </p>
+
+        {driver && (
+          <p className="mt-2 text-sm text-emerald-400">
+            Logged in as driver: {driver.fullName || driver.email || driver.id}
+          </p>
+        )}
       </section>
 
       {orders.length === 0 ? (
