@@ -19,26 +19,41 @@ export default function DriverOrdersTable() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   async function fetchOrders() {
-    const driverId =
-      typeof window !== "undefined" ? localStorage.getItem("driverId") : null;
+  const storedUser = localStorage.getItem("user");
 
-    const response = await api.get<Order[]>("/api/Orders");
+  const parsedUser = storedUser ? JSON.parse(storedUser) : null;
 
-    const myOrders = response.data.filter(
-      (order) =>
-        order.driverId === driverId &&
-        [
-          "driver_assigned",
-          "driver_accepted",
-          "waiting_for_pickup",
-          "picked_up",
-          "en_route",
-        ].includes(order.status)
+  const driverId =
+    localStorage.getItem("driverId") ||
+    parsedUser?.driverId ||
+    parsedUser?.id ||
+    localStorage.getItem("userId") ||
+    localStorage.getItem("id");
+
+  console.log("Driver ID used for orders:", driverId);
+
+  const response = await api.get<Order[]>("/api/Orders");
+
+  console.log("All orders:", response.data);
+
+  const myOrders = response.data.filter((order) => {
+    console.log("Order driver:", order.driverId, "Status:", order.status);
+
+    return (
+      String(order.driverId).toLowerCase() === String(driverId).toLowerCase() &&
+      [
+        "driver_assigned",
+        "driver_accepted",
+        "waiting_for_pickup",
+        "picked_up",
+        "en_route",
+      ].includes(order.status)
     );
+  });
 
-    setOrders(myOrders);
-    setLoading(false);
-  }
+  setOrders(myOrders);
+  setLoading(false);
+}
 
   useEffect(() => {
     const timer = setTimeout(() => {
