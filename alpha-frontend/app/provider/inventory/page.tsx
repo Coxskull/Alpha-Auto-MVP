@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import api from "@/services/api";
+import Image from "next/image";
 
 type Product = {
   id: string;
@@ -276,12 +277,14 @@ if (!hasLoaded && supplierId) {
                 className="overflow-hidden rounded-2xl border border-white/10 bg-slate-950"
               >
                 {product.imageUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={product.imageUrl}
-                    alt={product.name}
-                    className="h-44 w-full object-cover"
-                  />
+                  <div className="relative h-44 w-full">
+  <Image
+    src={product.imageUrl}
+    alt={product.name}
+    fill
+    className="object-cover"
+  />
+</div>
                 ) : (
                   <div className="flex h-44 items-center justify-center bg-white/5 text-slate-500">
                     No Image
