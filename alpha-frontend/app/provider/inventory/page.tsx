@@ -137,17 +137,17 @@ useMemo(() => {
     try {
       const data = new FormData();
 
-      data.append("supplierId", supplierId);
-      data.append("partNumber", form.partNumber);
-      data.append("brand", form.brand);
-      data.append("name", form.name);
-      data.append("description", form.description);
-      data.append("price", String(price));
-      data.append("quantityAvailable", String(quantityAvailable));
+      data.append("SupplierId", supplierId);
+data.append("PartNumber", form.partNumber);
+data.append("Brand", form.brand);
+data.append("Name", form.name);
+data.append("Description", form.description);
+data.append("Price", String(price));
+data.append("QuantityAvailable", String(quantityAvailable));
 
-      if (selectedImage) {
-        data.append("image", selectedImage);
-      }
+if (selectedImage) {
+  data.append("Image", selectedImage);
+}
 
       await api.post("/api/Products/upload", data);
 
