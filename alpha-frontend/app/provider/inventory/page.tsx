@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import api from "@/services/api";
 import Image from "next/image";
 
@@ -51,33 +51,37 @@ function getSupplierId() {
 }
 
 export default function ProviderInventoryPage() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [form, setForm] = useState<ProductForm>(initialForm);
   const [supplierId] = useState<string | null>(() => getSupplierId());
+const [products, setProducts] = useState<Product[]>([]);
+const [form, setForm] = useState<ProductForm>(initialForm);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const loadProducts = useCallback(async (id: string) => {
-    setLoading(true);
+  setLoading(true);
 
-    try {
-      const res = await api.get<Product[]>(`/api/Products/supplier/${id}`);
-      setProducts(res.data);
-    } catch (error) {
-      console.error("Failed to load products:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  try {
+    const res = await api.get<Product[]>(`/api/Products/supplier/${id}`);
+    setProducts(res.data);
+  } catch (error) {
+    console.error("Failed to load products:", error);
+  } finally {
+    setLoading(false);
+  }
+}, []);
 
- useEffect(() => {
+useMemo(() => {
   if (!supplierId) return;
 
   localStorage.setItem("supplierId", supplierId);
-  void loadProducts(supplierId);
+
+  queueMicrotask(() => {
+    void loadProducts(supplierId);
+  });
 }, [supplierId, loadProducts]);
+
 
   const totalInventoryValue = useMemo(() => {
     return products.reduce((sum, product) => {
