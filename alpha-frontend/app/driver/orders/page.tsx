@@ -1,5 +1,5 @@
-import OrdersList from "@/resources/orders/OrdersList";
+import DriverOrdersTable from "@/components/driver/DriverOrdersTable";
 
 export default function OrdersPage() {
-  return <OrdersList />;
+  return <DriverOrdersTable />;
 }
