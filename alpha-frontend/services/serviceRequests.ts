@@ -87,7 +87,10 @@ export async function uploadRepairProof(
 
   return response.data;
 }
-
+export async function driverAcceptServiceRequest(id: string) {
+  const response = await api.post(`/api/ServiceRequests/${id}/driver-accept`);
+  return response.data;
+}
 export async function completeServiceRequest(id: string, finalAmount: number) {
   const response = await api.post(`/api/ServiceRequests/${id}/complete`, {
     finalAmount,

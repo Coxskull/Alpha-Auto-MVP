@@ -2,14 +2,22 @@
 
 import { useEffect, useState } from "react";
 import {
+  driverAcceptServiceRequest,
   getMyDriverRequests,
   updateDriverStatus,
 } from "@/services/serviceRequests";
+import {
+  driverAcceptOrder,
+  markDelivered,
+  markPickedUp,
+} from "@/services/orderActions";
 import { getDriverDashboard } from "@/services/dashboard";
 import type {
   ServiceRequest,
   DriverDashboardStats,
 } from "@/types/serviceRequest";
+import type { Order } from "@/types/dashboard";
+import api from "@/services/api";
 
 function formatStatus(status: string) {
   return status.replaceAll("_", " ");
@@ -17,64 +25,62 @@ function formatStatus(status: string) {
 
 export default function DriverDashboardPage() {
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [stats, setStats] = useState<DriverDashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   async function fetchData() {
-    const requestData = await getMyDriverRequests();
-    const statsData = await getDriverDashboard();
+    const [requestData, statsData, orderResponse] = await Promise.all([
+      getMyDriverRequests(),
+      getDriverDashboard(),
+      api.get<Order[]>("/api/Orders"),
+    ]);
+
+    const driverId =
+      typeof window !== "undefined" ? localStorage.getItem("driverId") : null;
+
+    const myOrders = orderResponse.data.filter(
+      (order) =>
+        order.driverId === driverId &&
+        [
+          "driver_assigned",
+          "driver_accepted",
+          "waiting_for_pickup",
+          "picked_up",
+          "en_route",
+        ].includes(order.status)
+    );
 
     setRequests(requestData);
     setStats(statsData);
+    setOrders(myOrders);
     setLoading(false);
   }
 
   useEffect(() => {
-  let active = true;
+    const timer = setTimeout(() => {
+      void fetchData();
+    }, 0);
 
-  async function load() {
+    const interval = window.setInterval(() => {
+      void fetchData();
+    }, 15000);
+
+    return () => {
+      clearTimeout(timer);
+      window.clearInterval(interval);
+    };
+  }, []);
+
+  async function run(id: string, action: () => Promise<unknown>) {
     try {
-      const requestData = await getMyDriverRequests();
-      const statsData = await getDriverDashboard();
-
-      if (!active) return;
-
-      setRequests(requestData);
-      setStats(statsData);
-    } catch (error) {
-      console.error("Failed to load driver dashboard", error);
-      alert("Driver access denied. Please check driver role or driver email.");
-    } finally {
-      if (active) {
-        setLoading(false);
-      }
-    }
-  }
-
-  void load();
-
-  const timer = window.setInterval(() => {
-    void load();
-  }, 15000);
-
-  return () => {
-    active = false;
-    window.clearInterval(timer);
-  };
-}, []);
-
-  async function run(
-    requestId: string,
-    action: () => Promise<unknown>
-  ) {
-    try {
-      setActionLoading(requestId);
+      setActionLoading(id);
       await action();
       await fetchData();
     } catch (error) {
       console.error(error);
-      alert("Driver action failed. Please check the request status.");
+      alert("Driver action failed. Please check the current status.");
     } finally {
       setActionLoading(null);
     }
@@ -95,12 +101,11 @@ export default function DriverDashboardPage() {
           Alpha Driver Panel
         </p>
 
-        <h1 className="text-3xl font-bold mt-2">
-          Parts Delivery Requests
-        </h1>
+        <h1 className="text-3xl font-bold mt-2">Driver Dashboard</h1>
 
         <p className="text-gray-400 mt-2">
-          View service requests assigned to you and update parts pickup or delivery.
+          Accept assigned orders and service delivery jobs, then update pickup
+          and delivery progress.
         </p>
       </section>
 
@@ -115,30 +120,145 @@ export default function DriverDashboardPage() {
       )}
 
       <section className="rounded-3xl bg-[#111827] border border-white/10 p-5">
-        <h2 className="text-xl font-bold">
-          Assigned Service Deliveries
-        </h2>
+        <h2 className="text-xl font-bold">Assigned Order Deliveries</h2>
 
         <p className="text-gray-400 text-sm mt-1 mb-5">
-          These are mechanic service jobs where parts delivery is assigned to you.
+          These are customer product orders assigned to you.
+        </p>
+
+        {orders.length === 0 ? (
+          <Empty message="No assigned order deliveries yet." />
+        ) : (
+          <div className="space-y-5">
+            {orders.map((order) => {
+              const isBusy = actionLoading === order.id;
+
+              const canAccept = order.status === "driver_assigned";
+              const canPickup =
+                order.status === "driver_accepted" ||
+                order.status === "waiting_for_pickup";
+              const canDeliver = order.status === "en_route";
+
+              return (
+                <div
+                  key={order.id}
+                  className="rounded-3xl border border-white/5 bg-[#0B0F14] p-6 hover:border-orange-500/20 transition-all"
+                >
+                  <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-5">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-3">
+                        <h3 className="text-xl font-bold">
+                          {order.orderNumber}
+                        </h3>
+
+                        <StatusPill status={order.status} />
+                      </div>
+
+                      <p className="text-gray-400 text-sm mt-2">
+                        Customer: {order.customerName}
+                      </p>
+
+                      <p className="text-gray-400 text-sm">
+                        Items: {order.itemDescription || "N/A"}
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <Info label="Pickup" value={order.pickupAddress} />
+                      <Info label="Delivery" value={order.deliveryAddress} />
+                    </div>
+                  </div>
+
+                  <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-3">
+                    <Step
+                      label="Assigned"
+                      active={order.status === "driver_assigned"}
+                      done={[
+                        "driver_accepted",
+                        "waiting_for_pickup",
+                        "picked_up",
+                        "en_route",
+                        "delivered",
+                      ].includes(order.status)}
+                    />
+                    <Step
+                      label="Accepted"
+                      active={order.status === "driver_accepted"}
+                      done={[
+                        "waiting_for_pickup",
+                        "picked_up",
+                        "en_route",
+                        "delivered",
+                      ].includes(order.status)}
+                    />
+                    <Step
+                      label="Picked Up"
+                      active={order.status === "picked_up"}
+                      done={["en_route", "delivered"].includes(order.status)}
+                    />
+                    <Step
+                      label="Delivered"
+                      active={order.status === "delivered"}
+                      done={order.status === "delivered"}
+                    />
+                  </div>
+
+                  <div className="flex flex-wrap gap-3 mt-6">
+                    <button
+                      disabled={isBusy || !canAccept}
+                      onClick={() =>
+                        run(order.id, () => driverAcceptOrder(order.id))
+                      }
+                      className="rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-bold text-black disabled:opacity-40"
+                    >
+                      {isBusy ? "Working..." : "Accept Order"}
+                    </button>
+
+                    <button
+                      disabled={isBusy || !canPickup}
+                      onClick={() =>
+                        run(order.id, () => markPickedUp(order.id))
+                      }
+                      className="rounded-xl bg-blue-500 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-40"
+                    >
+                      {isBusy ? "Working..." : "Mark Picked Up"}
+                    </button>
+
+                    <button
+                      disabled={isBusy || !canDeliver}
+                      onClick={() =>
+                        run(order.id, () => markDelivered(order.id))
+                      }
+                      className="rounded-xl bg-green-500 px-4 py-2.5 text-sm font-bold text-black disabled:opacity-40"
+                    >
+                      {isBusy ? "Working..." : "Mark Delivered"}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      <section className="rounded-3xl bg-[#111827] border border-white/10 p-5">
+        <h2 className="text-xl font-bold">Assigned Service Deliveries</h2>
+
+        <p className="text-gray-400 text-sm mt-1 mb-5">
+          These are mechanic service jobs where parts delivery is assigned to
+          you.
         </p>
 
         {requests.length === 0 ? (
-          <div className="rounded-3xl border border-white/10 bg-[#0B0F14] p-8 text-center">
-            <p className="text-gray-400">
-              No assigned service deliveries yet.
-            </p>
-          </div>
+          <Empty message="No assigned service deliveries yet." />
         ) : (
           <div className="space-y-5">
             {requests.map((request) => {
               const isBusy = actionLoading === request.id;
 
-              const canPickUp =
-                request.status === "driver_assigned";
-
-              const canDeliver =
-                request.status === "parts_picked_up";
+              const canAccept = request.status === "driver_assigned";
+              const canPickUp = request.status === "driver_accepted";
+              const canDeliver = request.status === "parts_picked_up";
 
               return (
                 <div
@@ -152,9 +272,7 @@ export default function DriverDashboardPage() {
                           {request.customerName}
                         </h3>
 
-                        <span className="rounded-full border border-orange-500/20 bg-orange-500/10 px-3 py-1 text-xs font-bold text-orange-400 capitalize">
-                          {formatStatus(request.status)}
-                        </span>
+                        <StatusPill status={request.status} />
                       </div>
 
                       <p className="text-gray-400 text-sm mt-2">
@@ -167,102 +285,110 @@ export default function DriverDashboardPage() {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                     <Info
-  label="Provider"
-  value={
-    request.providerName ||
-    request.providerId ||
-    "Not Assigned"
-  }
-/>
+                      <Info
+                        label="Provider"
+                        value={
+                          request.providerName ||
+                          request.providerId ||
+                          "Not Assigned"
+                        }
+                      />
 
-<Info
-  label="Mechanic"
-  value={
-    request.mechanicName ||
-    request.mechanicId ||
-    "Not Assigned"
-  }
-/>
+                      <Info
+                        label="Mechanic"
+                        value={
+                          request.mechanicName ||
+                          request.mechanicId ||
+                          "Not Assigned"
+                        }
+                      />
 
                       <Info
                         label="Parts Status"
-                        value={
-                          request.partsRequestNote ||
-                          "Parts requested"
-                        }
+                        value={request.partsRequestNote || "Parts requested"}
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-5">
-                    <Info
-                      label="Pickup Zone"
-                      value={request.zone || "N/A"}
-                    />
-
+                    <Info label="Pickup Zone" value={request.zone || "N/A"} />
                     <Info
                       label="Delivery Address"
                       value={request.serviceAddress}
                     />
-
                     <Info
                       label="Payment"
                       value={request.paymentStatus || "unpaid"}
                     />
-
-                    <Info
-                      label="Amount"
-                      value={`$${request.finalAmount || 0}`}
-                    />
+                    <Info label="Amount" value={`$${request.finalAmount || 0}`} />
                   </div>
 
-                  <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-3">
                     <Step
                       label="Assigned"
                       active={request.status === "driver_assigned"}
-                      done={
-                        request.status === "parts_picked_up" ||
-                        request.status === "parts_delivered" ||
-                        request.status === "repair_started" ||
-                        request.status === "proof_uploaded" ||
-                        request.status === "completed"
-                      }
+                      done={[
+                        "driver_accepted",
+                        "parts_picked_up",
+                        "parts_delivered",
+                        "repair_started",
+                        "proof_uploaded",
+                        "completed",
+                      ].includes(request.status)}
+                    />
+
+                    <Step
+                      label="Accepted"
+                      active={request.status === "driver_accepted"}
+                      done={[
+                        "parts_picked_up",
+                        "parts_delivered",
+                        "repair_started",
+                        "proof_uploaded",
+                        "completed",
+                      ].includes(request.status)}
                     />
 
                     <Step
                       label="Parts Picked Up"
                       active={request.status === "parts_picked_up"}
-                      done={
-                        request.status === "parts_delivered" ||
-                        request.status === "repair_started" ||
-                        request.status === "proof_uploaded" ||
-                        request.status === "completed"
-                      }
+                      done={[
+                        "parts_delivered",
+                        "repair_started",
+                        "proof_uploaded",
+                        "completed",
+                      ].includes(request.status)}
                     />
 
                     <Step
                       label="Parts Delivered"
                       active={request.status === "parts_delivered"}
-                      done={
-                        request.status === "repair_started" ||
-                        request.status === "proof_uploaded" ||
-                        request.status === "completed"
-                      }
+                      done={[
+                        "repair_started",
+                        "proof_uploaded",
+                        "completed",
+                      ].includes(request.status)}
                     />
                   </div>
 
                   <div className="flex flex-wrap gap-3 mt-6">
                     <button
+                      disabled={isBusy || !canAccept}
+                      onClick={() =>
+                        run(request.id, () =>
+                          driverAcceptServiceRequest(request.id)
+                        )
+                      }
+                      className="rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-bold text-black disabled:opacity-40"
+                    >
+                      {isBusy ? "Working..." : "Accept Job"}
+                    </button>
+
+                    <button
                       disabled={isBusy || !canPickUp}
                       onClick={() =>
-                        run(
-                          request.id,
-                          () =>
-                            updateDriverStatus(
-                              request.id,
-                              "parts_picked_up"
-                            )
+                        run(request.id, () =>
+                          updateDriverStatus(request.id, "parts_picked_up")
                         )
                       }
                       className="rounded-xl bg-blue-500 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-40"
@@ -273,13 +399,8 @@ export default function DriverDashboardPage() {
                     <button
                       disabled={isBusy || !canDeliver}
                       onClick={() =>
-                        run(
-                          request.id,
-                          () =>
-                            updateDriverStatus(
-                              request.id,
-                              "parts_delivered"
-                            )
+                        run(request.id, () =>
+                          updateDriverStatus(request.id, "parts_delivered")
                         )
                       }
                       className="rounded-xl bg-green-500 px-4 py-2.5 text-sm font-bold text-black disabled:opacity-40"
@@ -297,13 +418,7 @@ export default function DriverDashboardPage() {
   );
 }
 
-function Card({
-  label,
-  value,
-}: {
-  label: string;
-  value: string | number;
-}) {
+function Card({ label, value }: { label: string; value: string | number }) {
   return (
     <div className="rounded-2xl bg-[#111827] border border-white/10 p-4">
       <p className="text-gray-400 text-sm">{label}</p>
@@ -312,22 +427,14 @@ function Card({
   );
 }
 
-function Info({
-  label,
-  value,
-}: {
-  label: string;
-  value: string | number;
-}) {
+function Info({ label, value }: { label: string; value: string | number }) {
   return (
     <div className="rounded-2xl bg-[#111827] p-4 border border-white/5">
       <p className="text-xs uppercase tracking-widest text-gray-500">
         {label}
       </p>
 
-      <p className="text-white font-semibold mt-2">
-        {value}
-      </p>
+      <p className="text-white font-semibold mt-2">{value}</p>
     </div>
   );
 }
@@ -352,6 +459,22 @@ function Step({
       }`}
     >
       {label}
+    </div>
+  );
+}
+
+function StatusPill({ status }: { status: string }) {
+  return (
+    <span className="rounded-full border border-orange-500/20 bg-orange-500/10 px-3 py-1 text-xs font-bold text-orange-400 capitalize">
+      {formatStatus(status)}
+    </span>
+  );
+}
+
+function Empty({ message }: { message: string }) {
+  return (
+    <div className="rounded-3xl border border-white/10 bg-[#0B0F14] p-8 text-center">
+      <p className="text-gray-400">{message}</p>
     </div>
   );
 }

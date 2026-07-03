@@ -9,13 +9,15 @@ export type ServiceRequestStatus =
   | "parts_requested"
   | "driver_needed"
   | "driver_assigned"
+  | "driver_accepted"
   | "parts_picked_up"
   | "parts_delivered"
   | "repair_started"
   | "proof_uploaded"
   | "completed"
   | "closed"
-  | "cancelled";
+  | "cancelled"
+  | "payment_failed";
 
 export type ServiceRequest = {
   id: string;

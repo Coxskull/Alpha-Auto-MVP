@@ -15,7 +15,10 @@ export const assignSupplier = async (
     `/api/Orders/${orderId}/assign-supplier`
   );
 };
-
+export async function driverAcceptOrder(orderId: string) {
+  const response = await api.post(`/api/Orders/${orderId}/driver-accept`);
+  return response.data;
+}
 export const markPickedUp = async (
   orderId: string
 ) => {

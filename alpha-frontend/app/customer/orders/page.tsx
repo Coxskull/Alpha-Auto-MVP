@@ -30,7 +30,7 @@ export default function CustomerOrdersPage() {
             {orders.map((order) => (
               <Link
                 key={order.id}
-                href={`/customer/tracking/${order.id}`}
+                href={`/customer/orders/${order.id}`}
                 className="block bg-[#0f172a] border border-white/10 rounded-3xl p-5"
               >
                 <p className="text-sm text-slate-400">
