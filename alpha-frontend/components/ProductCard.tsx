@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { ShoppingCart } from "lucide-react";
 import { Product } from "@/types/product";
 
@@ -10,20 +11,20 @@ interface Props {
 
 function getImageUrl(imageUrl?: string) {
   if (!imageUrl) return "/placeholder-part.png";
-
   if (imageUrl.startsWith("http")) return imageUrl;
-
   return `${process.env.NEXT_PUBLIC_API_URL}${imageUrl}`;
 }
 
 export default function ProductCard({ product, onAddToCart }: Props) {
   return (
     <div className="bg-[#0f172a] border border-white/10 rounded-3xl overflow-hidden shadow-xl">
-      <div className="relative">
-        <img
+      <div className="relative h-40 w-full">
+        <Image
           src={getImageUrl(product.imageUrl)}
           alt={product.name}
-          className="w-full h-40 object-cover"
+          fill
+          className="object-cover"
+          unoptimized
         />
 
         <span className="absolute top-3 left-3 bg-black/70 text-white text-xs px-3 py-1 rounded-full">
