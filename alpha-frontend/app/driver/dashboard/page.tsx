@@ -37,20 +37,46 @@ export default function DriverDashboardPage() {
       api.get<Order[]>("/api/Orders"),
     ]);
 
-    const driverId =
-      typeof window !== "undefined" ? localStorage.getItem("driverId") : null;
+    const storedUser = localStorage.getItem("user");
 
-    const myOrders = orderResponse.data.filter(
-      (order) =>
-        order.driverId === driverId &&
-        [
-          "driver_assigned",
-          "driver_accepted",
-          "waiting_for_pickup",
-          "picked_up",
-          "en_route",
-        ].includes(order.status)
-    );
+let userId: string | null = null;
+
+if (storedUser) {
+  const parsedUser = JSON.parse(storedUser);
+
+  userId =
+    parsedUser?.userId ||
+    parsedUser?.id ||
+    parsedUser?.Id ||
+    parsedUser?.user?.id ||
+    null;
+}
+
+userId =
+  userId ||
+  localStorage.getItem("userId") ||
+  localStorage.getItem("id") ||
+  localStorage.getItem("Id");
+
+if (!userId) {
+  throw new Error("User ID not found. Please login again.");
+}
+
+const driverResponse = await api.get(`/api/Drivers/by-user/${userId}`);
+
+const driverId = driverResponse.data.id;
+
+const myOrders = orderResponse.data.filter(
+  (order) =>
+    String(order.driverId).toLowerCase() === String(driverId).toLowerCase() &&
+    [
+      "driver_assigned",
+      "driver_accepted",
+      "waiting_for_pickup",
+      "picked_up",
+      "en_route",
+    ].includes(order.status)
+);
 
     setRequests(requestData);
     setStats(statsData);
