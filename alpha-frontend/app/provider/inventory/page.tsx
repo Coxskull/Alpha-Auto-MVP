@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import api from "@/services/api";
 import Image from "next/image";
 
@@ -20,7 +20,6 @@ type ProductForm = {
   brand: string;
   name: string;
   description: string;
-  imageUrl: string;
   price: string;
   quantityAvailable: string;
 };
@@ -30,44 +29,55 @@ const initialForm: ProductForm = {
   brand: "",
   name: "",
   description: "",
-  imageUrl: "",
   price: "",
   quantityAvailable: "",
 };
 
+function getSupplierId() {
+  if (typeof window === "undefined") return null;
+
+  const storedSupplierId = localStorage.getItem("supplierId");
+  if (storedSupplierId) return storedSupplierId;
+
+  const alphaUser = localStorage.getItem("alpha_user");
+  if (!alphaUser) return null;
+
+  try {
+    const user = JSON.parse(alphaUser);
+    return user.supplierId || user.SupplierId || user.id || user.Id || null;
+  } catch {
+    return null;
+  }
+}
+
 export default function ProviderInventoryPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [form, setForm] = useState<ProductForm>(initialForm);
-  const supplierId =
-  typeof window !== "undefined" ? localStorage.getItem("supplierId") : null;
+  const [supplierId] = useState<string | null>(() => getSupplierId());
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
-
-  const loadProducts = useCallback(async () => {
-    if (!supplierId) return;
-
+  const loadProducts = useCallback(async (id: string) => {
     setLoading(true);
 
     try {
-      const res = await api.get<Product[]>(
-        `/api/Products/supplier/${supplierId}`
-      );
-
+      const res = await api.get<Product[]>(`/api/Products/supplier/${id}`);
       setProducts(res.data);
     } catch (error) {
       console.error("Failed to load products:", error);
     } finally {
       setLoading(false);
     }
-  }, [supplierId]);
+  }, []);
 
-const [hasLoaded, setHasLoaded] = useState(false);
+ useEffect(() => {
+  if (!supplierId) return;
 
-if (!hasLoaded && supplierId) {
-  setHasLoaded(true);
-  void loadProducts();
-}
+  localStorage.setItem("supplierId", supplierId);
+  void loadProducts(supplierId);
+}, [supplierId, loadProducts]);
 
   const totalInventoryValue = useMemo(() => {
     return products.reduce((sum, product) => {
@@ -80,6 +90,13 @@ if (!hasLoaded && supplierId) {
       ...prev,
       [field]: value,
     }));
+  };
+
+  const handleImageChange = (file?: File) => {
+    if (!file) return;
+
+    setSelectedImage(file);
+    setPreviewUrl(URL.createObjectURL(file));
   };
 
   const submitProduct = async () => {
@@ -114,19 +131,26 @@ if (!hasLoaded && supplierId) {
     setSaving(true);
 
     try {
-      await api.post("/api/Products", {
-        supplierId,
-        partNumber: form.partNumber,
-        brand: form.brand,
-        name: form.name,
-        description: form.description,
-        imageUrl: form.imageUrl,
-        price,
-        quantityAvailable,
-      });
+      const data = new FormData();
+
+      data.append("supplierId", supplierId);
+      data.append("partNumber", form.partNumber);
+      data.append("brand", form.brand);
+      data.append("name", form.name);
+      data.append("description", form.description);
+      data.append("price", String(price));
+      data.append("quantityAvailable", String(quantityAvailable));
+
+      if (selectedImage) {
+        data.append("image", selectedImage);
+      }
+
+      await api.post("/api/Products/upload", data);
 
       setForm(initialForm);
-      await loadProducts();
+      setSelectedImage(null);
+      setPreviewUrl(null);
+      await loadProducts(supplierId);
     } catch (error) {
       console.error("Failed to save product:", error);
       alert("Failed to save product.");
@@ -200,12 +224,26 @@ if (!hasLoaded && supplierId) {
               onChange={(e) => updateForm("name", e.target.value)}
             />
 
-            <input
-              className="rounded-xl border border-white/10 bg-slate-950 p-3 text-white outline-none focus:border-emerald-400 md:col-span-2"
-              placeholder="Image URL"
-              value={form.imageUrl}
-              onChange={(e) => updateForm("imageUrl", e.target.value)}
-            />
+            <div className="md:col-span-2">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => handleImageChange(e.target.files?.[0])}
+                className="w-full rounded-xl border border-white/10 bg-slate-950 p-3 text-white"
+              />
+
+              {previewUrl && (
+                <div className="relative mt-4 h-48 w-full overflow-hidden rounded-xl border border-white/10">
+                  <Image
+                    src={previewUrl}
+                    alt="Product preview"
+                    fill
+                    className="object-cover"
+                    unoptimized
+                  />
+                </div>
+              )}
+            </div>
 
             <textarea
               className="min-h-28 rounded-xl border border-white/10 bg-slate-950 p-3 text-white outline-none focus:border-emerald-400 md:col-span-2"
@@ -250,8 +288,8 @@ if (!hasLoaded && supplierId) {
             <h2 className="text-xl font-black">My Products</h2>
 
             <button
-              onClick={loadProducts}
-              disabled={loading}
+              onClick={() => supplierId && loadProducts(supplierId)}
+              disabled={loading || !supplierId}
               className="rounded-xl border border-white/10 px-4 py-2 text-sm font-bold text-slate-300 hover:bg-white/10 disabled:opacity-60"
             >
               {loading ? "Loading..." : "Refresh"}
@@ -278,13 +316,13 @@ if (!hasLoaded && supplierId) {
               >
                 {product.imageUrl ? (
                   <div className="relative h-44 w-full">
-  <Image
-    src={product.imageUrl}
-    alt={product.name}
-    fill
-    className="object-cover"
-  />
-</div>
+                    <Image
+                      src={product.imageUrl}
+                      alt={product.name}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
                 ) : (
                   <div className="flex h-44 items-center justify-center bg-white/5 text-slate-500">
                     No Image

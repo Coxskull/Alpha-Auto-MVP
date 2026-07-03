@@ -54,6 +54,13 @@ export default function LoginForm({
     localStorage.setItem("alpha_token", response.data.token);
     localStorage.setItem("alpha_user", JSON.stringify(user));
 
+    if (user.supplierId || user.SupplierId) {
+  localStorage.setItem(
+    "supplierId",
+    user.supplierId || user.SupplierId
+  );
+}
+
     router.push(redirectTo);
     router.refresh();
   } catch (error) {

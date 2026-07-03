@@ -19,10 +19,6 @@ export default function MechanicDashboardPage() {
 const [requests, setRequests] = useState<ServiceRequest[]>([]);
 const [stats, setStats] = useState<MechanicDashboardStats | null>(null);
 
-  async function load() {
-    setRequests(await getMyMechanicRequests());
-    setStats(await getMechanicDashboard());
-  }
 
  useEffect(() => {
   let active = true;
