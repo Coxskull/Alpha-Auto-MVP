@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { createOrder } from "@/services/orders";
 import { useRouter } from "next/navigation";
-
+import { getCart, clearCart } from "@/services/cart";
 export default function CheckoutPage() {
   const router = useRouter();
 
@@ -12,19 +12,20 @@ export default function CheckoutPage() {
   const [deliveryAddress, setDeliveryAddress] = useState("");
   const [itemDescription, setItemDescription] = useState("");
   const [zone] = useState("34");
-
-  const [itemSubtotal, setItemSubtotal] = useState(0);
   const [selectedCurrency, setSelectedCurrency] = useState("USD");
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("cash");
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-
+const cart = getCart();
   const deliveryFee = 5;
   const serviceFee = 3;
   const tax = 0;
   const discount = 0;
-
+const itemSubtotal = cart.reduce(
+  (sum, item) => sum + Number(item.price) * item.quantity,
+  0
+);
   const totalAmount =
     itemSubtotal + deliveryFee + serviceFee + tax - discount;
 
@@ -44,21 +45,18 @@ export default function CheckoutPage() {
     try {
       setLoading(true);
 
-      const response = await createOrder({
-        customerName,
-        pickupAddress,
-        deliveryAddress,
-        itemDescription,
-        zone,
-        itemSubtotal,
-        deliveryFee,
-        serviceFee,
-        tax,
-        discount,
-        totalAmount,
-        currency: selectedCurrency,
-        paymentMethod: selectedPaymentMethod,
-      });
+     const response = await createOrder({
+  customerName,
+  pickupAddress,
+  deliveryAddress,
+  zone,
+  currency: selectedCurrency,
+  paymentMethod: selectedPaymentMethod,
+  items: cart.map((item) => ({
+    productId: item.productId,
+    quantity: item.quantity,
+  })),
+});
 
       const orderId = response?.order?.id || response?.id;
 
@@ -71,6 +69,7 @@ export default function CheckoutPage() {
   return;
 }
 
+clearCart();
 router.push(`/customer/orders/${orderId}`);
     } catch (err: unknown) {
       console.error("Create order failed:", err);
@@ -138,14 +137,6 @@ router.push(`/customer/orders/${orderId}`);
             placeholder="Part Description"
             value={itemDescription}
             onChange={(e) => setItemDescription(e.target.value)}
-            className="w-full bg-white text-black border rounded-xl p-3"
-          />
-
-          <input
-            type="number"
-            placeholder="Item Subtotal"
-            value={itemSubtotal}
-            onChange={(e) => setItemSubtotal(Number(e.target.value))}
             className="w-full bg-white text-black border rounded-xl p-3"
           />
 
