@@ -5,6 +5,7 @@ export type CreateOrderPayload = {
   customerName: string;
   pickupAddress: string;
   deliveryAddress: string;
+  itemDescription: string;
   zone: string;
   currency: string;
   paymentMethod: string;
