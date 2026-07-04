@@ -187,20 +187,23 @@ export default function ProviderInventoryPage() {
     }
   };
 
-  const deleteProduct = async (product: Product) => {
-    if (!supplierId) return;
+ const deleteProduct = async (product: Product) => {
+  if (!supplierId) return;
 
-    const confirmed = confirm(`Delete ${product.name}?`);
-    if (!confirmed) return;
+  const confirmed = confirm(`Delete ${product.name}?`);
+  if (!confirmed) return;
 
-    try {
-      await api.delete(`/api/Products/${product.id}/supplier/${supplierId}`);
-      await loadProducts(supplierId);
-    } catch (error) {
-      console.error("Failed to delete product:", error);
-      alert("Failed to delete product.");
-    }
-  };
+  try {
+    await api.delete(`/api/Products/${product.id}/supplier/${supplierId}`);
+
+    setProducts((prev) =>
+      prev.filter((item) => item.id !== product.id)
+    );
+  } catch (error) {
+    console.error("Failed to delete product:", error);
+    alert("Failed to delete product.");
+  }
+};
 
   return (
     <main className="min-h-screen bg-slate-950 p-4 text-white md:p-8">
