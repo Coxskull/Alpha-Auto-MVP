@@ -40,45 +40,45 @@ export default function DriverDashboardPage() {
 
     const storedUser = localStorage.getItem("user");
 
-let userId: string | null = null;
+    let userId: string | null = null;
 
-if (storedUser) {
-  const parsedUser = JSON.parse(storedUser);
+    if (storedUser) {
+      const parsedUser = JSON.parse(storedUser);
 
-  userId =
-    parsedUser?.userId ||
-    parsedUser?.id ||
-    parsedUser?.Id ||
-    parsedUser?.user?.id ||
-    null;
-}
+      userId =
+        parsedUser?.userId ||
+        parsedUser?.id ||
+        parsedUser?.Id ||
+        parsedUser?.user?.id ||
+        null;
+    }
 
-userId =
-  userId ||
-  localStorage.getItem("userId") ||
-  localStorage.getItem("id") ||
-  localStorage.getItem("Id");
+    userId =
+      userId ||
+      localStorage.getItem("userId") ||
+      localStorage.getItem("id") ||
+      localStorage.getItem("Id");
 
-if (!userId) {
-  throw new Error("User ID not found. Please login again.");
-}
+    if (!userId) {
+      throw new Error("User ID not found. Please login again.");
+    }
 
-const driverResponse = await api.get(`/api/Drivers/by-user/${userId}`);
+    const driverResponse = await api.get(`/api/Drivers/by-user/${userId}`);
+    const driverId = driverResponse.data.id;
 
-const driverId = driverResponse.data.id;
-
-const myOrders = orderResponse.data.filter(
-  (order) =>
-    String(order.driverId).toLowerCase() === String(driverId).toLowerCase() &&
-    [
-  "driver_assigned",
-  "driver_accepted",
-  "waiting_for_pickup",
-  "picked_up",
-  "en_route",
-  "delivered",
-].includes(order.status)
-);
+    const myOrders = orderResponse.data.filter(
+      (order) =>
+        String(order.driverId).toLowerCase() === String(driverId).toLowerCase() &&
+        [
+          "driver_assigned",
+          "driver_accepted",
+          "waiting_for_pickup",
+          "picked_up",
+          "en_route",
+          "delivered",
+          "proof_uploaded",
+        ].includes(order.status)
+    );
 
     setRequests(requestData);
     setStats(statsData);
@@ -207,8 +207,10 @@ const myOrders = orderResponse.data.filter(
                         "picked_up",
                         "en_route",
                         "delivered",
+                        "proof_uploaded",
                       ].includes(order.status)}
                     />
+
                     <Step
                       label="Accepted"
                       active={order.status === "driver_accepted"}
@@ -217,17 +219,24 @@ const myOrders = orderResponse.data.filter(
                         "picked_up",
                         "en_route",
                         "delivered",
+                        "proof_uploaded",
                       ].includes(order.status)}
                     />
+
                     <Step
                       label="Picked Up"
                       active={order.status === "picked_up"}
-                      done={["en_route", "delivered"].includes(order.status)}
+                      done={[
+                        "en_route",
+                        "delivered",
+                        "proof_uploaded",
+                      ].includes(order.status)}
                     />
+
                     <Step
                       label="Delivered"
                       active={order.status === "delivered"}
-                      done={order.status === "delivered"}
+                      done={["delivered", "proof_uploaded"].includes(order.status)}
                     />
                   </div>
 
@@ -261,7 +270,49 @@ const myOrders = orderResponse.data.filter(
                     >
                       {isBusy ? "Working..." : "Mark Delivered"}
                     </button>
+
+                    {order.status === "delivered" && (
+                      <label className="cursor-pointer rounded-xl bg-orange-500 px-4 py-2.5 text-sm font-bold text-black hover:bg-orange-400">
+                        Upload Proof
+                        <input
+                          type="file"
+                          accept="image/*"
+                          capture="environment"
+                          className="hidden"
+                          disabled={isBusy}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+
+                            void run(order.id, () =>
+                              uploadDeliveryProof(order.id, file)
+                            );
+                          }}
+                        />
+                      </label>
+                    )}
                   </div>
+
+                  {order.proofImageUrl && (
+                    <div className="mt-5 rounded-2xl border border-white/10 bg-[#111827] p-4">
+                      <p className="mb-3 text-sm font-bold text-orange-400">
+                        Uploaded Delivery Proof
+                      </p>
+
+                      <img
+                        src={`${process.env.NEXT_PUBLIC_API_URL}${order.proofImageUrl}`}
+                        alt="Delivery Proof"
+                        className="max-h-72 w-full rounded-xl border border-white/10 object-cover"
+                      />
+
+                      {order.proofUploadedAt && (
+                        <p className="mt-2 text-xs text-gray-400">
+                          Uploaded:{" "}
+                          {new Date(order.proofUploadedAt).toLocaleString()}
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -425,33 +476,16 @@ const myOrders = orderResponse.data.filter(
                     </button>
 
                     <button
-  disabled={isBusy || !canDeliver}
-  onClick={() =>
-    run(request.id, () => markDelivered(request.id))
-  }
-  className="rounded-xl bg-green-500 px-4 py-2.5 text-sm font-bold text-black disabled:opacity-40"
->
-  {isBusy ? "Working..." : "Mark Delivered"}
-</button>
-
-{request.status === "parts_delivered" && (
-  <label className="cursor-pointer rounded-xl bg-orange-500 px-4 py-2.5 text-sm font-bold text-black hover:bg-orange-400">
-    Upload Proof
-    <input
-      type="file"
-      accept="image/*"
-      capture="environment"
-      className="hidden"
-      disabled={isBusy}
-      onChange={(e) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        void run(request.id, () => uploadDeliveryProof(request.id, file));
-      }}
-    />
-  </label>
-)}
+                      disabled={isBusy || !canDeliver}
+                      onClick={() =>
+                        run(request.id, () =>
+                          updateDriverStatus(request.id, "parts_delivered")
+                        )
+                      }
+                      className="rounded-xl bg-green-500 px-4 py-2.5 text-sm font-bold text-black disabled:opacity-40"
+                    >
+                      {isBusy ? "Working..." : "Mark Parts Delivered"}
+                    </button>
                   </div>
                 </div>
               );

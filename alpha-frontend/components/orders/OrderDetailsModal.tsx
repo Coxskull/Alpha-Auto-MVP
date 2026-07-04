@@ -180,7 +180,26 @@ export default function OrderDetailsModal({
             {order.itemDescription}
           </p>
         </div>
+{order.proofImageUrl && (
+  <div className="mt-6 rounded-2xl bg-[#0B0F14] border border-white/5 p-5">
+    <h3 className="text-white font-semibold text-lg mb-4">
+      Delivery Proof
+    </h3>
 
+    <img
+      src={`${process.env.NEXT_PUBLIC_API_URL}${order.proofImageUrl}`}
+      alt="Delivery Proof"
+      className="w-full max-w-xl rounded-2xl border border-white/10 object-cover"
+    />
+
+    {order.proofUploadedAt && (
+      <p className="text-xs text-gray-400 mt-3">
+        Uploaded:{" "}
+        {new Date(order.proofUploadedAt).toLocaleString()}
+      </p>
+    )}
+  </div>
+)}
         {/* Timeline */}
         <div className="mt-6 rounded-2xl bg-[#0B0F14] border border-white/5 p-5">
           <h3 className="text-white font-semibold text-lg mb-5">

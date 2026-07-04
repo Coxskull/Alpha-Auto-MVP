@@ -51,6 +51,9 @@ export type Order = {
 
   createdAt?: string;
   updatedAt?: string;
+
+  proofImageUrl?: string;
+proofUploadedAt?: string;
 };
 
 export interface Driver {

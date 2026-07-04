@@ -13,6 +13,8 @@ type Order = {
   status: string;
   createdAt?: string;
   updatedAt?: string;
+  proofImageUrl?: string;
+  proofUploadedAt?: string;
 };
 
 const steps = [
@@ -127,7 +129,29 @@ export default function CustomerOrderTrackingPage({
           );
         })}
       </div>
+{order.proofImageUrl && (
+  <div className="mt-6 rounded-2xl bg-slate-900 border border-white/10 p-5">
+    <h2 className="text-xl font-black text-white">
+      Delivery Proof
+    </h2>
 
+    <p className="mt-1 text-sm text-slate-400">
+      Your delivery proof has been uploaded.
+    </p>
+
+    <img
+      src={`${process.env.NEXT_PUBLIC_API_URL}${order.proofImageUrl}`}
+      alt="Delivery Proof"
+      className="mt-4 w-full rounded-xl border border-white/10 object-cover"
+    />
+
+    {order.proofUploadedAt && (
+      <p className="mt-3 text-xs text-slate-400">
+        Uploaded: {new Date(order.proofUploadedAt).toLocaleString()}
+      </p>
+    )}
+  </div>
+)}
       {["delivered", "proof_uploaded", "completed"].includes(order.status) && (
         <div className="mt-6 grid gap-3">
           <a
