@@ -106,6 +106,7 @@ export default function DriverDashboardPage() {
       setActionLoading(id);
       await action();
       await fetchData();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
   console.error(error);
 
@@ -306,7 +307,7 @@ export default function DriverDashboardPage() {
                       </p>
 
                       <img
-                        src={`${process.env.NEXT_PUBLIC_API_URL}${order.proofImageUrl}`}
+                        src={order.proofImageUrl}
                         alt="Delivery Proof"
                         className="max-h-72 w-full rounded-xl border border-white/10 object-cover"
                       />

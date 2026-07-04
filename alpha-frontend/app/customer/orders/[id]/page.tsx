@@ -140,7 +140,7 @@ export default function CustomerOrderTrackingPage({
     </p>
 
     <img
-      src={`${process.env.NEXT_PUBLIC_API_URL}${order.proofImageUrl}`}
+      src={order.proofImageUrl}
       alt="Delivery Proof"
       className="mt-4 w-full rounded-xl border border-white/10 object-cover"
     />
