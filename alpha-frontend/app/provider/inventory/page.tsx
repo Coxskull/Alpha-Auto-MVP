@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import api from "@/services/api";
 import Image from "next/image";
 
@@ -44,7 +44,7 @@ function getSupplierId() {
 
   try {
     const user = JSON.parse(alphaUser);
-    return user.supplierId || user.SupplierId || null;
+    return user.supplierId || user.SupplierId || user.providerId || user.id || null;
   } catch {
     return null;
   }
@@ -52,27 +52,28 @@ function getSupplierId() {
 
 export default function ProviderInventoryPage() {
   const [supplierId] = useState<string | null>(() => getSupplierId());
-const [products, setProducts] = useState<Product[]>([]);
-const [form, setForm] = useState<ProductForm>(initialForm);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [form, setForm] = useState<ProductForm>(initialForm);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const loadProducts = useCallback(async (id: string) => {
-  setLoading(true);
+    setLoading(true);
 
-  try {
-    const res = await api.get<Product[]>(`/api/Products/supplier/${id}`);
-    setProducts(res.data);
-  } catch (error) {
-    console.error("Failed to load products:", error);
-  } finally {
-    setLoading(false);
-  }
-}, []);
+    try {
+      const res = await api.get<Product[]>(`/api/Products/supplier/${id}`);
+      setProducts(res.data);
+    } catch (error) {
+      console.error("Failed to load products:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-useMemo(() => {
+ useEffect(() => {
   if (!supplierId) return;
 
   localStorage.setItem("supplierId", supplierId);
@@ -81,7 +82,6 @@ useMemo(() => {
     void loadProducts(supplierId);
   });
 }, [supplierId, loadProducts]);
-
 
   const totalInventoryValue = useMemo(() => {
     return products.reduce((sum, product) => {
@@ -101,6 +101,28 @@ useMemo(() => {
 
     setSelectedImage(file);
     setPreviewUrl(URL.createObjectURL(file));
+  };
+
+  const resetForm = () => {
+    setForm(initialForm);
+    setEditingProduct(null);
+    setSelectedImage(null);
+    setPreviewUrl(null);
+  };
+
+  const startEdit = (product: Product) => {
+    setEditingProduct(product);
+    setForm({
+      partNumber: product.partNumber || "",
+      brand: product.brand || "",
+      name: product.name || "",
+      description: product.description || "",
+      price: String(product.price),
+      quantityAvailable: String(product.quantityAvailable),
+    });
+    setSelectedImage(null);
+    setPreviewUrl(product.imageUrl || null);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const submitProduct = async () => {
@@ -138,28 +160,45 @@ useMemo(() => {
       const data = new FormData();
 
       data.append("SupplierId", supplierId);
-data.append("PartNumber", form.partNumber);
-data.append("Brand", form.brand);
-data.append("Name", form.name);
-data.append("Description", form.description);
-data.append("Price", String(price));
-data.append("QuantityAvailable", String(quantityAvailable));
+      data.append("PartNumber", form.partNumber);
+      data.append("Brand", form.brand);
+      data.append("Name", form.name);
+      data.append("Description", form.description);
+      data.append("Price", String(price));
+      data.append("QuantityAvailable", String(quantityAvailable));
 
-if (selectedImage) {
-  data.append("Image", selectedImage);
-}
+      if (selectedImage) {
+        data.append("Image", selectedImage);
+      }
 
-      await api.post("/api/Products/upload", data);
+      if (editingProduct) {
+        await api.put(`/api/Products/${editingProduct.id}`, data);
+      } else {
+        await api.post("/api/Products/upload", data);
+      }
 
-      setForm(initialForm);
-      setSelectedImage(null);
-      setPreviewUrl(null);
+      resetForm();
       await loadProducts(supplierId);
     } catch (error) {
       console.error("Failed to save product:", error);
       alert("Failed to save product.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const deleteProduct = async (product: Product) => {
+    if (!supplierId) return;
+
+    const confirmed = confirm(`Delete ${product.name}?`);
+    if (!confirmed) return;
+
+    try {
+      await api.delete(`/api/Products/${product.id}/supplier/${supplierId}`);
+      await loadProducts(supplierId);
+    } catch (error) {
+      console.error("Failed to delete product:", error);
+      alert("Failed to delete product.");
     }
   };
 
@@ -174,8 +213,7 @@ if (selectedImage) {
             Inventory Management
           </h1>
           <p className="mt-2 text-slate-400">
-            Add products here and they will appear on the customer side when
-            active and in stock.
+            Add, edit, or delete your products here.
           </p>
         </div>
 
@@ -204,7 +242,9 @@ if (selectedImage) {
         </section>
 
         <section className="rounded-3xl border border-white/10 bg-slate-900 p-5 shadow-xl">
-          <h2 className="text-xl font-black">Add Product</h2>
+          <h2 className="text-xl font-black">
+            {editingProduct ? "Edit Product" : "Add Product"}
+          </h2>
 
           <div className="mt-5 grid gap-4 md:grid-cols-2">
             <input
@@ -278,13 +318,29 @@ if (selectedImage) {
             />
           </div>
 
-          <button
-            onClick={submitProduct}
-            disabled={saving}
-            className="mt-5 w-full rounded-xl bg-emerald-500 p-4 font-black text-black transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {saving ? "Saving..." : "Add Product"}
-          </button>
+          <div className="mt-5 flex flex-col gap-3 md:flex-row">
+            <button
+              onClick={submitProduct}
+              disabled={saving}
+              className="w-full rounded-xl bg-emerald-500 p-4 font-black text-black transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {saving
+                ? "Saving..."
+                : editingProduct
+                  ? "Update Product"
+                  : "Add Product"}
+            </button>
+
+            {editingProduct && (
+              <button
+                onClick={resetForm}
+                type="button"
+                className="w-full rounded-xl border border-white/10 p-4 font-black text-white transition hover:bg-white/10 md:w-52"
+              >
+                Cancel
+              </button>
+            )}
+          </div>
         </section>
 
         <section className="rounded-3xl border border-white/10 bg-slate-900 p-5 shadow-xl">
@@ -325,6 +381,7 @@ if (selectedImage) {
                       alt={product.name}
                       fill
                       className="object-cover"
+                      unoptimized
                     />
                   </div>
                 ) : (
@@ -354,6 +411,22 @@ if (selectedImage) {
                     <p className="rounded-full bg-white/10 px-3 py-1 text-sm text-slate-300">
                       Stock: {product.quantityAvailable}
                     </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 pt-4">
+                    <button
+                      onClick={() => startEdit(product)}
+                      className="rounded-xl bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-400"
+                    >
+                      Edit
+                    </button>
+
+                    <button
+                      onClick={() => deleteProduct(product)}
+                      className="rounded-xl bg-red-500 px-4 py-2 font-bold text-white hover:bg-red-400"
+                    >
+                      Delete
+                    </button>
                   </div>
                 </div>
               </article>

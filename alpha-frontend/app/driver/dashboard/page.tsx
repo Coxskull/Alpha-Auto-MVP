@@ -10,6 +10,7 @@ import {
   driverAcceptOrder,
   markDelivered,
   markPickedUp,
+  uploadDeliveryProof,
 } from "@/services/orderActions";
 import { getDriverDashboard } from "@/services/dashboard";
 import type {
@@ -70,12 +71,13 @@ const myOrders = orderResponse.data.filter(
   (order) =>
     String(order.driverId).toLowerCase() === String(driverId).toLowerCase() &&
     [
-      "driver_assigned",
-      "driver_accepted",
-      "waiting_for_pickup",
-      "picked_up",
-      "en_route",
-    ].includes(order.status)
+  "driver_assigned",
+  "driver_accepted",
+  "waiting_for_pickup",
+  "picked_up",
+  "en_route",
+  "delivered",
+].includes(order.status)
 );
 
     setRequests(requestData);
@@ -423,16 +425,33 @@ const myOrders = orderResponse.data.filter(
                     </button>
 
                     <button
-                      disabled={isBusy || !canDeliver}
-                      onClick={() =>
-                        run(request.id, () =>
-                          updateDriverStatus(request.id, "parts_delivered")
-                        )
-                      }
-                      className="rounded-xl bg-green-500 px-4 py-2.5 text-sm font-bold text-black disabled:opacity-40"
-                    >
-                      {isBusy ? "Working..." : "Mark Parts Delivered"}
-                    </button>
+  disabled={isBusy || !canDeliver}
+  onClick={() =>
+    run(request.id, () => markDelivered(request.id))
+  }
+  className="rounded-xl bg-green-500 px-4 py-2.5 text-sm font-bold text-black disabled:opacity-40"
+>
+  {isBusy ? "Working..." : "Mark Delivered"}
+</button>
+
+{request.status === "parts_delivered" && (
+  <label className="cursor-pointer rounded-xl bg-orange-500 px-4 py-2.5 text-sm font-bold text-black hover:bg-orange-400">
+    Upload Proof
+    <input
+      type="file"
+      accept="image/*"
+      capture="environment"
+      className="hidden"
+      disabled={isBusy}
+      onChange={(e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        void run(request.id, () => uploadDeliveryProof(request.id, file));
+      }}
+    />
+  </label>
+)}
                   </div>
                 </div>
               );
