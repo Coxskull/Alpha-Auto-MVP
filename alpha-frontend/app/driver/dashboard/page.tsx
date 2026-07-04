@@ -106,10 +106,16 @@ export default function DriverDashboardPage() {
       setActionLoading(id);
       await action();
       await fetchData();
-    } catch (error) {
-      console.error(error);
-      alert("Driver action failed. Please check the current status.");
-    } finally {
+    } catch (error: any) {
+  console.error(error);
+
+  const message =
+    error?.response?.data ||
+    error?.response?.data?.message ||
+    "Driver action failed. Please check the current status.";
+
+  alert(String(message));
+} finally {
       setActionLoading(null);
     }
   }
