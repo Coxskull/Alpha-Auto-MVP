@@ -34,10 +34,15 @@ export default function CheckoutPage() {
 
   const deliveryFee = 5;
   const serviceFee = 3;
-  const tax = 0;
-  const discount = 0;
+  const estimatedTax =
+  selectedCurrency === "MXN"
+    ? (itemSubtotal + deliveryFee + serviceFee) * 0.16
+    : 0;
 
-  const totalAmount = itemSubtotal + deliveryFee + serviceFee + tax - discount;
+const discount = 0;
+
+const totalAmount =
+  itemSubtotal + deliveryFee + serviceFee + estimatedTax - discount;
 
   async function submit() {
     setError("");
@@ -226,7 +231,7 @@ export default function CheckoutPage() {
             <div className="flex justify-between">
               <span>Tax</span>
               <span>
-                {selectedCurrency} {tax.toFixed(2)}
+                {selectedCurrency} {estimatedTax.toFixed(2)}
               </span>
             </div>
 
