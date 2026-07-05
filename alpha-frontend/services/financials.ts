@@ -10,6 +10,17 @@ export type SettlementItem = {
   reviewedBy?: string | null;
   reviewedAt?: string | null;
   createdAt: string;
+  financial?: {
+    orderId?: string;
+    customerPaid: number;
+    taxCollected: number;
+    taxWithheld: number;
+    processingFee: number;
+    alphaNetRevenue: number;
+    reconciliationDifference: number;
+    financialStatus: string;
+    payoutStatus: string;
+  };
 };
 
 export async function getSettlementQueue(): Promise<SettlementItem[]> {
