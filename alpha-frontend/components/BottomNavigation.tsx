@@ -1,56 +1,42 @@
 "use client";
 
 import Link from "next/link";
-import {
-  Home,
-  ClipboardList,
-  Car,
-  User,
-  ShoppingCart,
-} from "lucide-react";
+import { usePathname } from "next/navigation";
+import { Car, ClipboardList, Home, ShoppingCart, User } from "lucide-react";
 
-export default function BottomNavigation({
-  cartCount = 0,
-}: {
-  cartCount?: number;
-}) {
+const items = [
+  { href: "/customer", label: "Home", icon: Home },
+  { href: "/customer/orders", label: "Orders", icon: ClipboardList },
+  { href: "/customer/cart", label: "Cart", icon: ShoppingCart },
+  { href: "/customer/garage", label: "Garage", icon: Car },
+  { href: "/customer/account", label: "Account", icon: User },
+];
+
+export default function BottomNavigation({ cartCount = 0 }: { cartCount?: number }) {
+  const pathname = usePathname();
+
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-40 bg-[#020617]/95 backdrop-blur border-t border-white/10">
-      <div className="max-w-md mx-auto h-20 flex justify-around items-center text-xs text-slate-400">
-        <Link href="/customer" className="flex flex-col items-center gap-1">
-          <Home size={22} />
-          Home
-        </Link>
-
-        <Link
-          href="/customer/cart"
-          className="relative flex flex-col items-center gap-1 text-emerald-400"
-        >
-          <ShoppingCart size={22} />
-          Cart
-
-          {cartCount > 0 && (
-            <span className="absolute -top-2 right-2 bg-emerald-500 text-black text-xs font-bold h-5 w-5 rounded-full flex items-center justify-center">
-              {cartCount}
-            </span>
-          )}
-        </Link>
-
-        <Link href="/customer/orders" className="flex flex-col items-center gap-1">
-          <ClipboardList size={22} />
-          Orders
-        </Link>
-
-        <Link href="/customer/garage" className="flex flex-col items-center gap-1">
-          <Car size={22} />
-          Garage
-        </Link>
-
-        <Link href="/customer/account" className="flex flex-col items-center gap-1">
-          <User size={22} />
-          Account
-        </Link>
+    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur lg:hidden">
+      <div className="mx-auto flex h-[74px] max-w-xl items-center justify-around px-2 pb-[env(safe-area-inset-bottom)]">
+        {items.map(({ href, label, icon: Icon }) => {
+          const active = href === "/customer" ? pathname === href : pathname.startsWith(href);
+          return (
+            <Link
+              key={href}
+              href={href}
+              className={`relative flex min-w-14 flex-col items-center gap-1 rounded-xl px-2 py-2 text-[10px] font-bold transition ${active ? "text-violet-700" : "text-slate-500"}`}
+            >
+              <Icon size={20} strokeWidth={active ? 2.6 : 2} />
+              {label}
+              {href === "/customer/cart" && cartCount > 0 && (
+                <span className="absolute right-1 top-0 flex h-4 min-w-4 items-center justify-center rounded-full bg-violet-700 px-1 text-[9px] font-black text-white">
+                  {cartCount}
+                </span>
+              )}
+            </Link>
+          );
+        })}
       </div>
-    </div>
+    </nav>
   );
 }
