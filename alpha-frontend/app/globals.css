@@ -162,3 +162,72 @@ textarea:focus {
     width: 100% !important;
   }
 }
+/* Alpha unified light portal theme */
+.alpha-portal {
+  --alpha-purple: #5a22b8;
+  --alpha-purple-dark: #32117a;
+  --alpha-surface: #ffffff;
+  --alpha-border: #e5e7eb;
+}
+
+.alpha-portal main > div,
+.alpha-portal main > section {
+  max-width: 1600px;
+  margin-inline: auto;
+}
+
+.alpha-portal :is(.bg-\[\#020617\], .bg-\[\#0B0F14\], .bg-\[\#111827\], .bg-\[\#0b0f14\]) {
+  background-color: transparent !important;
+}
+
+.alpha-portal :is(.bg-\[\#1F2937\], .bg-\[\#1f2937\], .bg-gray-800, .bg-gray-900, .bg-slate-800, .bg-slate-900) {
+  background-color: #ffffff !important;
+}
+
+.alpha-portal :is(.border-white\/5, .border-white\/10, .border-gray-700, .border-gray-800, .border-slate-700, .border-slate-800) {
+  border-color: #e5e7eb !important;
+}
+
+.alpha-portal :is(.text-white, .text-gray-100, .text-slate-100) {
+  color: #0f172a !important;
+}
+
+.alpha-portal :is(.text-gray-300, .text-gray-400, .text-slate-300, .text-slate-400) {
+  color: #64748b !important;
+}
+
+.alpha-portal :is(.rounded-xl, .rounded-2xl)[class*="border"] {
+  box-shadow: 0 1px 2px rgb(15 23 42 / 0.03), 0 8px 30px rgb(15 23 42 / 0.04);
+}
+
+.alpha-portal table {
+  background: white;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.alpha-portal thead {
+  background: #f8fafc !important;
+}
+
+.alpha-portal input,
+.alpha-portal select,
+.alpha-portal textarea {
+  color: #0f172a;
+}
+
+.alpha-portal button[class*="bg-green-500"],
+.alpha-portal a[class*="bg-green-500"] {
+  background-color: var(--alpha-purple) !important;
+}
+
+.alpha-portal button[class*="hover:bg-green"],
+.alpha-portal a[class*="hover:bg-green"] {
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+@media (max-width: 1023px) {
+  .alpha-portal main {
+    padding-bottom: 92px;
+  }
+}
