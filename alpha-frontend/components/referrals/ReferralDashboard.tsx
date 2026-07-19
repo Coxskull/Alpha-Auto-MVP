@@ -38,16 +38,21 @@ function formatDate(value: string) {
 
 function roleLabel(role: string) {
   const labels: Record<string, string> = {
-    customer: "Customer",
-    driver: "Driver",
-    supplier: "Supplier",
-    provider: "Provider",
+    customer: "Vehicle Owner",
+    driver: "Motorcycle Rider",
+    supplier: "Auto Parts Store",
+    provider: "Auto Parts Store",
     mechanic: "Mechanic",
+    community_builder:
+      "Community Builder",
     admin: "Admin",
     dispatcher: "Dispatcher",
   };
 
-  return labels[role.toLowerCase()] ?? role;
+  return (
+    labels[role.toLowerCase()] ??
+    role
+  );
 }
 
 function StatusBadge({
@@ -210,10 +215,11 @@ useEffect(() => {
 
     if (navigator.share) {
       await navigator.share({
-        title: "Join Alpha",
-        text: "Join my Alpha network using this referral link.",
-        url: dashboard.referralLink,
-      });
+  title: "Join the Alpha Entrepreneur Network",
+  text:
+    "Join my Alpha Entrepreneur Network and help build real automotive opportunities in our city.",
+  url: dashboard.referralLink,
+});
 
       return;
     }
@@ -233,6 +239,7 @@ useEffect(() => {
           "admin",
           "dispatcher",
           "tow_provider",
+          "community_builder",
         ]}
       >
         <main className="min-h-screen bg-[#f5f6fa] p-6">
@@ -256,6 +263,7 @@ useEffect(() => {
           "admin",
           "dispatcher",
           "tow_provider",
+          "community_builder",
         ]}
       >
         <main className="min-h-screen bg-[#f5f6fa] p-6">
@@ -288,6 +296,7 @@ useEffect(() => {
         "admin",
         "dispatcher",
         "tow_provider",
+        "community_builder",
       ]}
     >
       <main className="min-h-screen bg-[#f5f6fa] p-4 sm:p-6 lg:p-8">
@@ -296,18 +305,20 @@ useEffect(() => {
             <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
               <div>
                 <p className="text-sm font-semibold uppercase tracking-[0.18em] text-purple-200">
-                  Alpha Referral Network
+                  Alpha Entrepreneur Network
                 </p>
 
                 <h1 className="mt-3 text-3xl font-bold sm:text-4xl">
-                  Grow your Alpha network
+                  Build your local business network
                 </h1>
 
                 <p className="mt-3 max-w-2xl text-sm leading-6 text-purple-100 sm:text-base">
-                  Invite customers and automotive partners,
-                  monitor their activity, and see referral
-                  earnings from eligible Alpha transactions.
-                </p>
+  Connect riders, mechanics, auto parts
+  stores, vehicle owners, and local
+  partners. Track real business activity
+  and rewards generated from eligible
+  completed transactions.
+</p>
               </div>
 
               <div className="rounded-2xl border border-white/20 bg-white/10 p-4 backdrop-blur">
@@ -327,7 +338,12 @@ useEffect(() => {
                 value={dashboard.referralLink}
                 className="h-12 min-w-0 flex-1 rounded-xl bg-slate-100 px-4 text-sm outline-none"
               />
-
+<div className="mt-4 rounded-xl border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm leading-6 text-amber-100">
+  Inviting a person does not automatically
+  generate a reward. Alpha rewards are earned
+  only when eligible members complete real,
+  paid business transactions.
+</div>
               <button
                 type="button"
                 onClick={copyReferralLink}

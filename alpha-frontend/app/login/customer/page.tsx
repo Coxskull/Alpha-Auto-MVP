@@ -4,8 +4,8 @@ export default function CustomerLoginPage() {
   return (
     <LoginForm
       role="customer"
-      title="Customer Login"
-      subtitle="Shop parts and track your orders."
+      title="Vehicle Owner Login"
+      subtitle="Shop for parts, request automotive services, and track your orders."
       redirectTo="/customer"
     />
   );
