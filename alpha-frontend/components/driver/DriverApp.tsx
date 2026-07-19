@@ -1,6 +1,6 @@
 "use client";
 
-import { CircleDollarSign, ClipboardList, History, LayoutDashboard, Settings } from "lucide-react";
+import { CircleDollarSign, ClipboardList, History, LayoutDashboard, Network, Settings } from "lucide-react";
 import RolePortalShell from "@/components/layout/RolePortalShell";
 
 const navigation = [
@@ -9,6 +9,7 @@ const navigation = [
   { label: "Earnings", href: "/driver/wallet", icon: CircleDollarSign },
   { label: "History", href: "/driver/history", icon: History },
   { label: "Settings", href: "/driver/settings", icon: Settings },
+  { label: "My Network", href: "/referrals", icon: Network },
 ];
 
 export default function DriverApp({ children }: { children: React.ReactNode }) {

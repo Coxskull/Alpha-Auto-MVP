@@ -1,6 +1,6 @@
 "use client";
 
-import { ClipboardList, History, LayoutDashboard, Wrench } from "lucide-react";
+import { ClipboardList, History, LayoutDashboard, Network, Wrench } from "lucide-react";
 import RolePortalShell from "@/components/layout/RolePortalShell";
 
 const navigation = [
@@ -8,6 +8,7 @@ const navigation = [
   { label: "Active Jobs", href: "/mechanic/jobs", icon: Wrench },
   { label: "History", href: "/mechanic/history", icon: History },
   { label: "Requests", href: "/mechanic/dashboard", icon: ClipboardList },
+  { label: "My Network", href: "/referrals", icon: Network },
 ];
 
 export default function MechanicApp({ children }: { children: React.ReactNode }) {

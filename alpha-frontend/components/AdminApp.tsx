@@ -5,6 +5,7 @@ import {
   BarChart3,
   LayoutDashboard,
   MessageSquare,
+  Network,
   Package,
   Settings,
   Store,
@@ -25,6 +26,7 @@ const navigation = [
   { label: "Escalations", href: "/mission-control/escalations", icon: AlertTriangle },
   { label: "Settlements", href: "/mission-control/settlement-queue", icon: WalletCards },
   { label: "Settings", href: "/mission-control/settings", icon: Settings },
+  { label: "Referral Network", href: "/mission-control/referrals", icon: Network },
 ];
 
 export default function AdminApp({ children }: { children: React.ReactNode }) {

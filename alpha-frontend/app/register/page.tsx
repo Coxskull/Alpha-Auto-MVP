@@ -2,8 +2,8 @@
 
 import axios from "axios";
 import Link from "next/link";
-import { FormEvent, useState } from "react";
-import { useRouter } from "next/navigation";
+import { FormEvent, useEffect, useState } from "react";
+import { useRouter,  useSearchParams } from "next/navigation";
 import api from "@/services/api";
 
 type RegistrationForm = {
@@ -31,7 +31,18 @@ export default function RegisterPage() {
   const [error, setError] = useState("");
 
   const [loading, setLoading] = useState(false);
+const searchParams = useSearchParams();
 
+const referralFromUrl = searchParams.get("ref") ?? "";
+
+const [referralCode, setReferralCode] =
+  useState(referralFromUrl);
+
+const [referrerName, setReferrerName] =
+  useState("");
+
+const [referralError, setReferralError] =
+  useState("");
   function updateField(
     field: keyof RegistrationForm,
     value: string
@@ -41,6 +52,40 @@ export default function RegisterPage() {
       [field]: value,
     }));
   }
+
+useEffect(() => {
+  const code = referralFromUrl.trim();
+
+  if (!code) {
+    return;
+  }
+
+  let active = true;
+
+  const validateReferral = async () => {
+    try {
+      const response = await api.get(
+        `/api/Referrals/validate/${encodeURIComponent(code)}`
+      );
+
+      if (active) {
+        setReferrerName(response.data.referrerName);
+        setReferralError("");
+      }
+    } catch {
+      if (active) {
+        setReferrerName("");
+        setReferralError("This referral code is invalid.");
+      }
+    }
+  };
+
+  validateReferral();
+
+  return () => {
+    active = false;
+  };
+}, [referralFromUrl]);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -68,6 +113,8 @@ export default function RegisterPage() {
         email: form.email,
         phone: form.phone || null,
         password: form.password,
+         referralCode:
+    referralCode.trim() || null,
       });
 
       router.push("/login/customer?registered=1");
@@ -169,6 +216,38 @@ export default function RegisterPage() {
           autoComplete="new-password"
           className="w-full rounded-2xl border border-white/10 bg-slate-950 px-4 py-4 outline-none focus:border-green-500"
         />
+
+        <div>
+  <label
+    htmlFor="referralCode"
+    className="mb-2 block text-sm font-semibold text-slate-700"
+  >
+    Referral code
+  </label>
+
+  <input
+    id="referralCode"
+    type="text"
+    value={referralCode}
+    onChange={(event) =>
+      setReferralCode(event.target.value.toUpperCase())
+    }
+    placeholder="Example: CARLOS-A83K2L"
+    className="h-12 w-full rounded-xl border border-slate-200 px-4 outline-none focus:border-purple-400 focus:ring-4 focus:ring-purple-100"
+  />
+
+  {referrerName && (
+    <p className="mt-2 text-sm font-medium text-emerald-600">
+      Invited by {referrerName}
+    </p>
+  )}
+
+  {referralError && (
+    <p className="mt-2 text-sm font-medium text-rose-600">
+      {referralError}
+    </p>
+  )}
+</div>
 
         {error && (
           <p className="rounded-xl bg-red-500/10 px-4 py-3 text-sm text-red-400">
