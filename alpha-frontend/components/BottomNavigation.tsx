@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Car, ClipboardList, Home, ShoppingCart, User } from "lucide-react";
+import { Car, ClipboardList, Home, Network, ShoppingCart, User } from "lucide-react";
 
 const items = [
   { href: "/customer", label: "Home", icon: Home },
@@ -10,6 +10,7 @@ const items = [
   { href: "/customer/cart", label: "Cart", icon: ShoppingCart },
   { href: "/customer/garage", label: "Garage", icon: Car },
   { href: "/customer/account", label: "Account", icon: User },
+  { label: "My Network", href: "/customer/referrals", icon: Network },
 ];
 
 export default function BottomNavigation({ cartCount = 0 }: { cartCount?: number }) {

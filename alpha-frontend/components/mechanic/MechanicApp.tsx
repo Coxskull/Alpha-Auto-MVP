@@ -8,7 +8,7 @@ const navigation = [
   { label: "Active Jobs", href: "/mechanic/jobs", icon: Wrench },
   { label: "History", href: "/mechanic/history", icon: History },
   { label: "Requests", href: "/mechanic/dashboard", icon: ClipboardList },
-  { label: "My Network", href: "/referrals", icon: Network },
+  { label: "My Network", href: "/mechanic/referrals", icon: Network },
 ];
 
 export default function MechanicApp({ children }: { children: React.ReactNode }) {

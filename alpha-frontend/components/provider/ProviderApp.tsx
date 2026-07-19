@@ -20,7 +20,7 @@ const navigation = [
   { label: "Drivers", href: "/provider/drivers", icon: Truck },
   { label: "Earnings", href: "/provider/earnings", icon: CircleDollarSign },
   { label: "Settings", href: "/provider/settings", icon: Settings },
-  { label: "My Network", href: "/referrals", icon: Network },
+  { label: "My Network", href: "/provider/referrals", icon: Network },
 ];
 
 export default function ProviderApp({ children }: { children: React.ReactNode }) {

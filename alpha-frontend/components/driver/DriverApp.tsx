@@ -9,7 +9,7 @@ const navigation = [
   { label: "Earnings", href: "/driver/wallet", icon: CircleDollarSign },
   { label: "History", href: "/driver/history", icon: History },
   { label: "Settings", href: "/driver/settings", icon: Settings },
-  { label: "My Network", href: "/referrals", icon: Network },
+  { label: "My Network", href: "/driver/referrals", icon: Network },
 ];
 
 export default function DriverApp({ children }: { children: React.ReactNode }) {
