@@ -7,6 +7,8 @@ export default function MissionControlLayout({
   children: React.ReactNode;
 }) {
   return (
+    <RoleGuard allowedRoles={["admin", "dispatcher"]}>
       <AdminApp>{children}</AdminApp>
+    </RoleGuard>
   );
 }

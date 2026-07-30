@@ -3,8 +3,8 @@
 import axios from "axios";
 import Link from "next/link";
 import {
-  useSearchParams,
   useRouter,
+  useSearchParams,
 } from "next/navigation";
 import { useState } from "react";
 
@@ -38,10 +38,70 @@ type LoginFormProps = {
   redirectTo?: string;
 };
 
+type LoginUser = AuthenticatedUser & {
+  role?: string;
+  Role?: string;
+
+  roles?: string[];
+  Roles?: string[];
+
+  primaryRole?: string;
+  PrimaryRole?: string;
+
+  roleStatuses?: Array<{
+    role?: string;
+    Role?: string;
+    roleKey?: string;
+    RoleKey?: string;
+    status?: string;
+    Status?: string;
+  }>;
+
+  RoleStatuses?: Array<{
+    role?: string;
+    Role?: string;
+    roleKey?: string;
+    RoleKey?: string;
+    status?: string;
+    Status?: string;
+  }>;
+
+  nextStep?: string;
+  NextStep?: string;
+
+  supplierId?: string | null;
+  SupplierId?: string | null;
+
+  driverId?: string | null;
+  DriverId?: string | null;
+
+  mechanicId?: string | null;
+  MechanicId?: string | null;
+};
+
+type LoginResponse = {
+  token?: string;
+  accessToken?: string;
+  access_token?: string;
+
+  nextStep?: string;
+  NextStep?: string;
+
+  user?: LoginUser;
+  User?: LoginUser;
+};
+
 function extractLoginError(
   requestError: unknown
 ): string {
   if (!axios.isAxiosError(requestError)) {
+    if (
+      requestError instanceof Error &&
+      requestError.message
+    ) {
+      return requestError.message;
+    }
+
     return "Invalid email or password.";
   }
 
@@ -56,7 +116,225 @@ function extractLoginError(
     return data.message;
   }
 
+  if (
+    typeof data === "string" &&
+    data.trim()
+  ) {
+    return data;
+  }
+
   return "Invalid email or password.";
+}
+
+function safeNormalizeRole(
+  value?: string | null
+): string {
+  if (!value) {
+    return "";
+  }
+
+  try {
+    return normalizeRole(value);
+  } catch {
+    return value
+      .trim()
+      .toLowerCase()
+      .replaceAll("-", "_")
+      .replaceAll(" ", "_");
+  }
+}
+
+function normalizeStatus(
+  value?: string | null
+): string {
+  return (
+    value
+      ?.trim()
+      .toLowerCase()
+      .replaceAll("-", "_")
+      .replaceAll(" ", "_") ?? ""
+  );
+}
+
+function getLoginUser(
+  data: LoginResponse
+): LoginUser | null {
+  if (
+    data.user &&
+    typeof data.user === "object"
+  ) {
+    return data.user;
+  }
+
+  if (
+    data.User &&
+    typeof data.User === "object"
+  ) {
+    return data.User;
+  }
+
+  return null;
+}
+
+function collectUserRoles(
+  user: LoginUser
+): string[] {
+  const collectedRoles: string[] = [];
+
+  try {
+    const resolvedRoles =
+      getUserRoles(user);
+
+    if (Array.isArray(resolvedRoles)) {
+      collectedRoles.push(
+        ...resolvedRoles
+      );
+    }
+  } catch {
+    // Continue using direct backend properties.
+  }
+
+  if (Array.isArray(user.roles)) {
+    collectedRoles.push(
+      ...user.roles
+    );
+  }
+
+  if (Array.isArray(user.Roles)) {
+    collectedRoles.push(
+      ...user.Roles
+    );
+  }
+
+  if (typeof user.role === "string") {
+    collectedRoles.push(user.role);
+  }
+
+  if (typeof user.Role === "string") {
+    collectedRoles.push(user.Role);
+  }
+
+  if (
+    typeof user.primaryRole === "string"
+  ) {
+    collectedRoles.push(
+      user.primaryRole
+    );
+  }
+
+  if (
+    typeof user.PrimaryRole === "string"
+  ) {
+    collectedRoles.push(
+      user.PrimaryRole
+    );
+  }
+
+  const statuses =
+    Array.isArray(user.roleStatuses)
+      ? user.roleStatuses
+      : Array.isArray(user.RoleStatuses)
+        ? user.RoleStatuses
+        : [];
+
+  for (const item of statuses) {
+    const status = normalizeStatus(
+      item.status ?? item.Status
+    );
+
+    if (
+      status !== "active" &&
+      status !== "approved"
+    ) {
+      continue;
+    }
+
+    const role =
+      item.role ??
+      item.Role ??
+      item.roleKey ??
+      item.RoleKey;
+
+    if (role) {
+      collectedRoles.push(role);
+    }
+  }
+
+  return Array.from(
+    new Set(
+      collectedRoles
+        .map((item) =>
+          safeNormalizeRole(item)
+        )
+        .filter(Boolean)
+    )
+  );
+}
+
+function getResolvedPrimaryRole(
+  user: LoginUser,
+  userRoles: string[]
+): string {
+  const candidates = [
+    user.primaryRole,
+    user.PrimaryRole,
+    user.role,
+    user.Role,
+  ];
+
+  for (const candidate of candidates) {
+    const normalized =
+      safeNormalizeRole(candidate);
+
+    if (normalized) {
+      return normalized;
+    }
+  }
+
+  try {
+    const resolved =
+      safeNormalizeRole(
+        getPrimaryRole(user)
+      );
+
+    if (resolved) {
+      return resolved;
+    }
+  } catch {
+    // Continue to role array fallback.
+  }
+
+  return userRoles[0] ?? "customer";
+}
+
+function getBackendNextStep(
+  response: LoginResponse,
+  user: LoginUser
+): string {
+  const value =
+    user.nextStep ??
+    user.NextStep ??
+    response.nextStep ??
+    response.NextStep ??
+    "";
+
+  return typeof value === "string"
+    ? value.trim()
+    : "";
+}
+
+function saveOptionalId(
+  key: string,
+  value?: string | null
+) {
+  if (value?.trim()) {
+    localStorage.setItem(
+      key,
+      value.trim()
+    );
+  } else {
+    localStorage.removeItem(key);
+  }
 }
 
 export default function LoginForm({
@@ -73,7 +351,8 @@ export default function LoginForm({
     searchParams.get("registered") === "1";
 
   const hasMultipleRoles =
-    searchParams.get("multipleRoles") === "1";
+    searchParams.get("multipleRoles") ===
+    "1";
 
   const [email, setEmail] =
     useState("");
@@ -100,7 +379,7 @@ export default function LoginForm({
     setLoading(true);
 
     try {
-      const response = await api.post(
+      const response = await api.post<LoginResponse>(
         "/api/Auth/login",
         {
           email: email
@@ -110,18 +389,38 @@ export default function LoginForm({
         }
       );
 
-      const token = response.data.token;
+      const responseData = response.data;
+
+      const token =
+        responseData.token ??
+        responseData.accessToken ??
+        responseData.access_token;
+
+      if (
+        typeof token !== "string" ||
+        !token.trim()
+      ) {
+        throw new Error(
+          "The login response did not contain a valid authentication token."
+        );
+      }
 
       const user =
-        response.data.user as AuthenticatedUser;
+        getLoginUser(responseData);
+
+      if (!user) {
+        throw new Error(
+          "The login response did not contain user information."
+        );
+      }
 
       const userRoles =
-        getUserRoles(user);
+        collectUserRoles(user);
 
       const expectedRole =
         role === "provider"
           ? "supplier"
-          : normalizeRole(role);
+          : safeNormalizeRole(role);
 
       if (
         expectedRole &&
@@ -134,9 +433,15 @@ export default function LoginForm({
         return;
       }
 
+      const primaryRole =
+        getResolvedPrimaryRole(
+          user,
+          userRoles
+        );
+
       localStorage.setItem(
         "alpha_token",
-        token
+        token.trim()
       );
 
       localStorage.setItem(
@@ -144,67 +449,114 @@ export default function LoginForm({
         JSON.stringify({
           ...user,
           roles: userRoles,
-          primaryRole:
-            getPrimaryRole(user),
+          primaryRole,
         })
       );
 
-      const supplierId =
+      saveOptionalId(
+        "supplierId",
         user.supplierId ??
-        user.SupplierId;
+          user.SupplierId
+      );
 
-      if (supplierId) {
-        localStorage.setItem(
-          "supplierId",
-          supplierId
-        );
-      }
-
-      const driverId =
+      saveOptionalId(
+        "driverId",
         user.driverId ??
-        user.DriverId;
+          user.DriverId
+      );
 
-      if (driverId) {
-        localStorage.setItem(
-          "driverId",
-          driverId
-        );
-      }
-
-      const mechanicId =
+      saveOptionalId(
+        "mechanicId",
         user.mechanicId ??
-        user.MechanicId;
+          user.MechanicId
+      );
 
-      if (mechanicId) {
-        localStorage.setItem(
-          "mechanicId",
-          mechanicId
+      window.dispatchEvent(
+        new Event(
+          "alpha-auth-changed"
+        )
+      );
+
+      /*
+       * Admin and dispatcher routing must be checked before
+       * nextStep because the backend currently returns "/"
+       * for the admin account.
+       */
+      if (
+        userRoles.includes("admin") ||
+        userRoles.includes("dispatcher") ||
+        primaryRole === "admin" ||
+        primaryRole === "dispatcher"
+      ) {
+        router.replace(
+          "/mission-control/dashboard"
         );
+
+        return;
       }
 
-     const nextStep =
-  response.data?.user?.nextStep ??
-  response.data?.nextStep;
+      /*
+       * Use a role-specific redirect supplied by the page,
+       * such as the driver, mechanic, or supplier login page.
+       */
+      if (
+        redirectTo &&
+        expectedRole
+      ) {
+        router.replace(redirectTo);
 
-if (nextStep) {
-  router.push(nextStep);
-} else if (redirectTo && expectedRole) {
-  router.push(redirectTo);
-} else if (userRoles.length > 1) {
-  router.push("/select-workspace");
-} else {
-  const destination = getDashboardRoute(
-    userRoles[0] ||
-      getPrimaryRole(user)
-  );
+        return;
+      }
 
-  router.push(destination);
-}
+      /*
+       * Ignore nextStep="/" because that is the public home page
+       * and would incorrectly send operational users away from
+       * their dashboards.
+       */
+      const backendNextStep =
+        getBackendNextStep(
+          responseData,
+          user
+        );
 
-      router.refresh();
-    } catch (requestError: unknown) {
+      if (
+        backendNextStep &&
+        backendNextStep !== "/"
+      ) {
+        router.replace(
+          backendNextStep
+        );
+
+        return;
+      }
+
+      if (userRoles.length > 1) {
+        router.replace(
+          "/select-workspace"
+        );
+
+        return;
+      }
+
+      const destination =
+        getDashboardRoute(
+          userRoles[0] ??
+            primaryRole
+        );
+
+      router.replace(destination);
+    } catch (
+      requestError: unknown
+    ) {
+      console.error(
+        "Login failed:",
+        requestError
+      );
+
       setError(
-        extractLoginError(requestError)
+        extractLoginError(
+          requestError
+        )
       );
     } finally {
       setLoading(false);
@@ -250,13 +602,17 @@ if (nextStep) {
               setEmail(event.target.value)
             }
             onKeyDown={(event) => {
-              if (event.key === "Enter") {
+              if (
+                event.key === "Enter" &&
+                !loading
+              ) {
                 void handleLogin();
               }
             }}
             placeholder="Email address"
             autoComplete="email"
-            className="w-full rounded-2xl border border-white/10 bg-slate-950 px-4 py-4 text-white outline-none focus:border-emerald-500"
+            disabled={loading}
+            className="w-full rounded-2xl border border-white/10 bg-slate-950 px-4 py-4 text-white outline-none transition focus:border-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
           />
 
           <input
@@ -266,13 +622,17 @@ if (nextStep) {
               setPassword(event.target.value)
             }
             onKeyDown={(event) => {
-              if (event.key === "Enter") {
+              if (
+                event.key === "Enter" &&
+                !loading
+              ) {
                 void handleLogin();
               }
             }}
             placeholder="Password"
             autoComplete="current-password"
-            className="w-full rounded-2xl border border-white/10 bg-slate-950 px-4 py-4 text-white outline-none focus:border-emerald-500"
+            disabled={loading}
+            className="w-full rounded-2xl border border-white/10 bg-slate-950 px-4 py-4 text-white outline-none transition focus:border-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
           />
 
           {error && (
@@ -303,7 +663,7 @@ if (nextStep) {
               void handleLogin()
             }
             disabled={loading}
-            className="w-full rounded-2xl bg-emerald-400 py-4 font-bold text-slate-950 transition hover:bg-emerald-300 disabled:opacity-60"
+            className="w-full rounded-2xl bg-emerald-400 py-4 font-bold text-slate-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {loading
               ? "Signing in..."
