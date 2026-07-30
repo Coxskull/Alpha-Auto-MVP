@@ -20,7 +20,7 @@ import type {
 } from "@/types/entrepreneur";
 
 type RoleGuardProps = {
-  allowedRoles: string[];
+  allowedRoles?: string[];
   children: ReactNode;
 };
 
@@ -42,6 +42,9 @@ type UserRoleStatus = {
 
 type AuthenticatedUserWithStatuses =
   AuthenticatedUser & {
+    roles?: string[];
+    Roles?: string[];
+
     roleStatuses?: UserRoleStatus[];
     RoleStatuses?: UserRoleStatus[];
   };
@@ -57,42 +60,104 @@ const verificationStatuses = new Set([
 function normalizeStatus(
   status?: string | null
 ): string {
-  return status
-    ?.trim()
-    .toLowerCase()
-    .replaceAll("-", "_")
-    .replaceAll(" ", "_") ?? "";
+  return (
+    status
+      ?.trim()
+      .toLowerCase()
+      .replaceAll("-", "_")
+      .replaceAll(" ", "_") ?? ""
+  );
+}
+
+function safeNormalizeRole(
+  role?: string | null
+): string {
+  if (!role) {
+    return "";
+  }
+
+  return normalizeRole(role);
 }
 
 function getRoleStatuses(
-  user: AuthenticatedUserWithStatuses
+  user?: AuthenticatedUserWithStatuses | null
 ): Array<{
   role: string;
   status: string;
 }> {
-  const source =
-    user.roleStatuses ??
-    user.RoleStatuses ??
-    [];
+  if (!user) {
+    return [];
+  }
+
+  const source = Array.isArray(
+    user.roleStatuses
+  )
+    ? user.roleStatuses
+    : Array.isArray(user.RoleStatuses)
+      ? user.RoleStatuses
+      : [];
 
   return source
-    .map((item) => ({
-      role: normalizeRole(
-        item.role ??
-          item.Role ??
-          item.roleKey ??
-          item.RoleKey
-      ),
-      status: normalizeStatus(
-        item.status ??
-          item.Status
-      ),
-    }))
+    .map((item) => {
+      const role = safeNormalizeRole(
+        item?.role ??
+          item?.Role ??
+          item?.roleKey ??
+          item?.RoleKey
+      );
+
+      const status = normalizeStatus(
+        item?.status ??
+          item?.Status
+      );
+
+      return {
+        role,
+        status,
+      };
+    })
     .filter(
       (item) =>
         Boolean(item.role) &&
         Boolean(item.status)
     );
+}
+
+function getSafeUserRoles(
+  user?: AuthenticatedUserWithStatuses | null
+): string[] {
+  if (!user) {
+    return [];
+  }
+
+  try {
+    const resolvedRoles =
+      getUserRoles(user);
+
+    if (!Array.isArray(resolvedRoles)) {
+      return [];
+    }
+
+    return resolvedRoles
+      .map((role) =>
+        safeNormalizeRole(role)
+      )
+      .filter(Boolean);
+  } catch {
+    const directRoles = Array.isArray(
+      user.roles
+    )
+      ? user.roles
+      : Array.isArray(user.Roles)
+        ? user.Roles
+        : [];
+
+    return directRoles
+      .map((role) =>
+        safeNormalizeRole(role)
+      )
+      .filter(Boolean);
+  }
 }
 
 function clearAuthentication() {
@@ -105,7 +170,7 @@ function clearAuthentication() {
 }
 
 export default function RoleGuard({
-  allowedRoles,
+  allowedRoles = [],
   children,
 }: RoleGuardProps) {
   const router = useRouter();
@@ -115,10 +180,17 @@ export default function RoleGuard({
 
   const normalizedAllowedRoles =
     useMemo(() => {
+      const safeAllowedRoles =
+        Array.isArray(allowedRoles)
+          ? allowedRoles
+          : [];
+
       return Array.from(
         new Set(
-          allowedRoles
-            .map(normalizeRole)
+          safeAllowedRoles
+            .map((role) =>
+              safeNormalizeRole(role)
+            )
             .filter(Boolean)
         )
       );
@@ -142,6 +214,27 @@ export default function RoleGuard({
         return;
       }
 
+      /*
+       * A missing allowedRoles property should not
+       * crash the application. However, allowing
+       * access without any required role would make
+       * the guard ineffective, so redirect instead.
+       */
+      if (
+        normalizedAllowedRoles.length === 0
+      ) {
+        console.error(
+          "RoleGuard requires at least one allowed role."
+        );
+
+        if (isMounted) {
+          setStatus("blocked");
+        }
+
+        router.replace("/unauthorized");
+        return;
+      }
+
       try {
         const response = await api.get(
           "/api/Auth/me"
@@ -154,19 +247,6 @@ export default function RoleGuard({
         const roleStatuses =
           getRoleStatuses(user);
 
-        /*
-         * Only roles whose status is "active"
-         * should receive access.
-         *
-         * The backend should return:
-         *
-         * roleStatuses: [
-         *   {
-         *     role: "driver",
-         *     status: "under_review"
-         *   }
-         * ]
-         */
         const activeRolesFromStatuses =
           roleStatuses
             .filter(
@@ -176,24 +256,22 @@ export default function RoleGuard({
             .map((item) => item.role);
 
         /*
-         * Backward-compatible fallback:
-         *
-         * If the API has not returned roleStatuses,
-         * use the roles returned by the server.
-         *
-         * Once roleStatuses is fully implemented,
-         * access will use active role records.
+         * When roleStatuses is available, only
+         * status=active roles may access guarded
+         * operational workspaces.
          */
         const effectiveActiveRoles =
           roleStatuses.length > 0
             ? activeRolesFromStatuses
-            : getUserRoles(user);
+            : getSafeUserRoles(user);
 
         const uniqueActiveRoles =
           Array.from(
             new Set(
               effectiveActiveRoles
-                .map(normalizeRole)
+                .map((role) =>
+                  safeNormalizeRole(role)
+                )
                 .filter(Boolean)
             )
           );
@@ -206,8 +284,17 @@ export default function RoleGuard({
               )
           );
 
+        localStorage.setItem(
+          "alpha_user",
+          JSON.stringify({
+            ...user,
+            roles: uniqueActiveRoles,
+            roleStatuses,
+          })
+        );
+
         if (!hasAccess) {
-          const selectedOperationalRole =
+          const roleAwaitingVerification =
             roleStatuses.find(
               (item) =>
                 normalizedAllowedRoles.includes(
@@ -218,20 +305,11 @@ export default function RoleGuard({
                 )
             );
 
-          localStorage.setItem(
-            "alpha_user",
-            JSON.stringify({
-              ...user,
-              roles: uniqueActiveRoles,
-              roleStatuses,
-            })
-          );
-
           if (isMounted) {
             setStatus("blocked");
           }
 
-          if (selectedOperationalRole) {
+          if (roleAwaitingVerification) {
             router.replace(
               "/verification"
             );
@@ -244,19 +322,15 @@ export default function RoleGuard({
           return;
         }
 
-        localStorage.setItem(
-          "alpha_user",
-          JSON.stringify({
-            ...user,
-            roles: uniqueActiveRoles,
-            roleStatuses,
-          })
-        );
-
         if (isMounted) {
           setStatus("allowed");
         }
       } catch (error: unknown) {
+        console.error(
+          "Role access check failed:",
+          error
+        );
+
         clearAuthentication();
 
         if (isMounted) {

@@ -230,7 +230,7 @@ if (nextStep) {
 
         {wasRegistered && (
           <div className="mb-5 rounded-2xl border border-emerald-400/20 bg-emerald-400/5 px-4 py-3 text-sm text-emerald-300">
-            Your entrepreneur account was created
+            Your account was created
             successfully. Sign in to continue.
 
             {hasMultipleRoles && (

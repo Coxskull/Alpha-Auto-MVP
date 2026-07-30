@@ -932,8 +932,8 @@ router.push(
             className="flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-400 px-5 py-4 font-black text-slate-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {loading
-              ? "Joining the network..."
-              : "Join the Alpha Entrepreneur Network"}
+              ? "Joining Alpha..."
+              : "Join the Alpha"}
 
             {!loading && (
               <ArrowRight size={20} />
