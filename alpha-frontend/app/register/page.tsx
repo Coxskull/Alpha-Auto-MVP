@@ -443,17 +443,28 @@ const referralError =
         response.data?.user?.roles ??
         form.selectedRoles;
 
-      const query = new URLSearchParams({
-        registered: "1",
-      });
+      const requiresVerification =
+  registeredRoles.some((role) =>
+    ["driver", "mechanic", "supplier"].includes(
+      role.trim().toLowerCase()
+    )
+  );
 
-      if (registeredRoles.length > 1) {
-        query.set("multipleRoles", "1");
-      }
+const query = new URLSearchParams({
+  registered: "1",
+});
 
-      router.push(
-        `/login?${query.toString()}`
-      );
+if (registeredRoles.length > 1) {
+  query.set("multipleRoles", "1");
+}
+
+if (requiresVerification) {
+  query.set("verificationRequired", "1");
+}
+
+router.push(
+  `/login?${query.toString()}`
+);
     } catch (requestError: unknown) {
       setError(
         extractRequestError(requestError)

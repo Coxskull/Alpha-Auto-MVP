@@ -182,21 +182,24 @@ export default function LoginForm({
         );
       }
 
-      if (redirectTo && expectedRole) {
-        router.push(redirectTo);
-      } else if (userRoles.length > 1) {
-        router.push(
-          "/select-workspace"
-        );
-      } else {
-        const destination =
-          getDashboardRoute(
-            userRoles[0] ||
-              getPrimaryRole(user)
-          );
+     const nextStep =
+  response.data?.user?.nextStep ??
+  response.data?.nextStep;
 
-        router.push(destination);
-      }
+if (nextStep) {
+  router.push(nextStep);
+} else if (redirectTo && expectedRole) {
+  router.push(redirectTo);
+} else if (userRoles.length > 1) {
+  router.push("/select-workspace");
+} else {
+  const destination = getDashboardRoute(
+    userRoles[0] ||
+      getPrimaryRole(user)
+  );
+
+  router.push(destination);
+}
 
       router.refresh();
     } catch (requestError: unknown) {
