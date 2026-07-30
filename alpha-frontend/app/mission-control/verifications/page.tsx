@@ -5,6 +5,7 @@ import {
   AlertCircle,
   CheckCircle2,
   Clock3,
+  Download,
   Eye,
   FileText,
   Loader2,
@@ -55,6 +56,12 @@ type VerificationDocument = {
   reviewerNotes?: string | null;
   reviewedAt?: string | null;
   uploadedAt?: string | null;
+};
+
+type DocumentPreview = {
+  document: VerificationDocument;
+  objectUrl: string;
+  contentType: string;
 };
 
 type VerificationApplicationSummary = {
@@ -206,6 +213,9 @@ export default function AdminVerificationsPage() {
   const [openingDocument, setOpeningDocument] =
     useState<string | null>(null);
 
+  const [documentPreview, setDocumentPreview] =
+    useState<DocumentPreview | null>(null);
+
   const [statusFilter, setStatusFilter] =
     useState("under_review");
 
@@ -271,6 +281,16 @@ export default function AdminVerificationsPage() {
     };
   }, [loadApplications]);
 
+  useEffect(() => {
+    return () => {
+      if (documentPreview?.objectUrl) {
+        URL.revokeObjectURL(
+          documentPreview.objectUrl
+        );
+      }
+    };
+  }, [documentPreview]);
+
   const filteredApplications = useMemo(() => {
     const normalizedSearch =
       searchText.trim().toLowerCase();
@@ -335,77 +355,83 @@ export default function AdminVerificationsPage() {
     await loadApplications();
   }
 
-  async function openDocument(
-  document: VerificationDocument
-) {
-  setOpeningDocument(document.id);
-  setError("");
-
-  try {
-    const response = await api.get(
-      `/api/admin/role-verifications/documents/${document.id}/file`,
-      {
-        responseType: "blob",
+  function closeDocumentPreview() {
+    setDocumentPreview((current) => {
+      if (current?.objectUrl) {
+        URL.revokeObjectURL(
+          current.objectUrl
+        );
       }
-    );
 
-    const rawContentType =
-      response.headers["content-type"];
+      return null;
+    });
+  }
 
-    const headerContentType =
-      typeof rawContentType === "string"
-        ? rawContentType
-        : null;
+  async function openDocument(
+    document: VerificationDocument
+  ) {
+    setOpeningDocument(document.id);
+    setError("");
 
-    const contentType =
-      headerContentType?.trim() ||
-      document.contentType?.trim() ||
-      "application/octet-stream";
-
-    const blob =
-      response.data instanceof Blob
-        ? response.data.slice(
-            0,
-            response.data.size,
-            contentType
-          )
-        : new Blob([response.data], {
-            type: contentType,
-          });
-
-    const objectUrl =
-      URL.createObjectURL(blob);
-
-    const newWindow = window.open(
-      objectUrl,
-      "_blank",
-      "noopener,noreferrer"
-    );
-
-    if (!newWindow) {
-      URL.revokeObjectURL(objectUrl);
-
-      setError(
-        "The browser blocked the document preview. Allow pop-ups for this website and try again."
+    try {
+      const response = await api.get(
+        `/api/admin/role-verifications/documents/${document.id}/file`,
+        {
+          responseType: "blob",
+        }
       );
 
-      return;
-    }
+      const rawContentType =
+        response.headers["content-type"];
 
-    window.setTimeout(() => {
-      URL.revokeObjectURL(objectUrl);
-    }, 60_000);
-  } catch (requestError: unknown) {
-    setError(
-      getErrorMessage(
-        requestError,
-        "Unable to open the document."
-      )
-    );
-  } finally {
-    setOpeningDocument(null);
+      const headerContentType =
+        typeof rawContentType === "string"
+          ? rawContentType
+          : null;
+
+      const contentType =
+        headerContentType?.trim() ||
+        document.contentType?.trim() ||
+        "application/octet-stream";
+
+      const blob =
+        response.data instanceof Blob
+          ? response.data.slice(
+              0,
+              response.data.size,
+              contentType
+            )
+          : new Blob([response.data], {
+              type: contentType,
+            });
+
+      const objectUrl =
+        URL.createObjectURL(blob);
+
+      setDocumentPreview((current) => {
+        if (current?.objectUrl) {
+          URL.revokeObjectURL(
+            current.objectUrl
+          );
+        }
+
+        return {
+          document,
+          objectUrl,
+          contentType,
+        };
+      });
+    } catch (requestError: unknown) {
+      setError(
+        getErrorMessage(
+          requestError,
+          "Unable to open the document."
+        )
+      );
+    } finally {
+      setOpeningDocument(null);
+    }
   }
-}
 
   async function reviewDocument(
     documentId: string,
@@ -1121,6 +1147,187 @@ export default function AdminVerificationsPage() {
             </section>
           </div>
         </div>
+
+          {documentPreview && (
+            <div
+              className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/85 p-4 backdrop-blur-sm"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="document-preview-title"
+              onMouseDown={(event) => {
+                if (
+                  event.target ===
+                  event.currentTarget
+                ) {
+                  closeDocumentPreview();
+                }
+              }}
+            >
+              <div className="flex max-h-[94vh] w-full max-w-6xl flex-col overflow-hidden rounded-3xl border border-white/10 bg-slate-900 shadow-2xl">
+                <header className="flex items-center justify-between gap-4 border-b border-white/10 px-5 py-4">
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold uppercase tracking-[0.15em] text-emerald-400">
+                      Document Preview
+                    </p>
+
+                    <h2
+                      id="document-preview-title"
+                      className="mt-1 truncate text-lg font-bold text-white"
+                    >
+                      {
+                        documentPreview.document
+                          .originalFileName
+                      }
+                    </h2>
+
+                    <p className="mt-1 text-sm text-slate-400">
+                      {formatStatus(
+                        documentPreview.document
+                          .documentType
+                      )}
+                    </p>
+                  </div>
+
+                  <div className="flex shrink-0 items-center gap-2">
+                    <a
+                      href={documentPreview.objectUrl}
+                      download={
+                        documentPreview.document
+                          .originalFileName
+                      }
+                      className="inline-flex items-center gap-2 rounded-xl border border-white/10 px-4 py-2.5 text-sm font-semibold text-slate-200 transition hover:border-white/20 hover:bg-white/5"
+                    >
+                      <Download className="h-4 w-4" />
+                      Download
+                    </a>
+
+                    <button
+                      type="button"
+                      onClick={closeDocumentPreview}
+                      className="grid h-11 w-11 place-items-center rounded-xl border border-white/10 text-slate-300 transition hover:border-red-400/40 hover:bg-red-400/10 hover:text-red-300"
+                      aria-label="Close document preview"
+                    >
+                      <XCircle className="h-5 w-5" />
+                    </button>
+                  </div>
+                </header>
+
+                <div className="min-h-0 flex-1 overflow-auto bg-slate-950 p-4">
+                  {documentPreview.contentType.startsWith(
+                    "image/"
+                  ) ? (
+                    <div className="flex min-h-[65vh] items-center justify-center">
+                      {/* The source is a temporary authenticated Blob URL. */}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={documentPreview.objectUrl}
+                        alt={
+                          documentPreview.document
+                            .originalFileName
+                        }
+                        className="max-h-[78vh] max-w-full rounded-xl object-contain shadow-2xl"
+                      />
+                    </div>
+                  ) : documentPreview.contentType ===
+                      "application/pdf" ||
+                    documentPreview.document.originalFileName
+                      .toLowerCase()
+                      .endsWith(".pdf") ? (
+                    <iframe
+                      src={documentPreview.objectUrl}
+                      title={
+                        documentPreview.document
+                          .originalFileName
+                      }
+                      className="h-[76vh] w-full rounded-xl border border-white/10 bg-white"
+                    />
+                  ) : (
+                    <div className="flex min-h-[65vh] flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 text-center">
+                      <FileText className="h-14 w-14 text-slate-500" />
+
+                      <h3 className="mt-4 text-lg font-bold text-white">
+                        Preview unavailable
+                      </h3>
+
+                      <p className="mt-2 max-w-md text-sm leading-6 text-slate-400">
+                        This file type cannot be displayed
+                        inside the browser. Download the
+                        document to review it.
+                      </p>
+
+                      <a
+                        href={
+                          documentPreview.objectUrl
+                        }
+                        download={
+                          documentPreview.document
+                            .originalFileName
+                        }
+                        className="mt-5 inline-flex items-center gap-2 rounded-xl bg-emerald-400 px-5 py-3 font-bold text-slate-950 transition hover:bg-emerald-300"
+                      >
+                        <Download className="h-5 w-5" />
+                        Download Document
+                      </a>
+                    </div>
+                  )}
+                </div>
+
+                <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 px-5 py-4">
+                  <div className="text-sm text-slate-400">
+                    Status:{" "}
+                    <span className="font-semibold text-slate-200">
+                      {formatStatus(
+                        documentPreview.document
+                          .verificationStatus
+                      )}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const documentId =
+                          documentPreview.document.id;
+
+                        closeDocumentPreview();
+
+                        void reviewDocument(
+                          documentId,
+                          "accepted"
+                        );
+                      }}
+                      disabled={processing}
+                      className="inline-flex items-center gap-2 rounded-xl bg-emerald-400 px-4 py-2.5 font-bold text-slate-950 transition hover:bg-emerald-300 disabled:opacity-60"
+                    >
+                      <CheckCircle2 className="h-4 w-4" />
+                      Accept Document
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const documentId =
+                          documentPreview.document.id;
+
+                        closeDocumentPreview();
+
+                        void reviewDocument(
+                          documentId,
+                          "rejected"
+                        );
+                      }}
+                      disabled={processing}
+                      className="inline-flex items-center gap-2 rounded-xl bg-red-400/10 px-4 py-2.5 font-bold text-red-300 transition hover:bg-red-400/20 disabled:opacity-60"
+                    >
+                      <XCircle className="h-4 w-4" />
+                      Reject Document
+                    </button>
+                  </div>
+                </footer>
+              </div>
+            </div>
+          )}
       </main>
     </RoleGuard>
   );
