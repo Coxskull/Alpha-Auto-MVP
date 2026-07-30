@@ -55,11 +55,19 @@ export default function RolePortalShell({
   }, [navigation, pathname, title]);
 
   function signOut() {
-    localStorage.removeItem("alpha_token");
-    localStorage.removeItem("alpha_user");
-    window.dispatchEvent(new Event("alpha-auth-changed"));
-    router.push("/");
-  }
+  localStorage.removeItem("alpha_token");
+  localStorage.removeItem("alpha_user");
+  localStorage.removeItem("supplierId");
+  localStorage.removeItem("driverId");
+  localStorage.removeItem("mechanicId");
+
+  window.dispatchEvent(
+    new Event("alpha-auth-changed")
+  );
+
+  router.replace("/login");
+  router.refresh();
+}
 
   const navigationContent = (
     <>
