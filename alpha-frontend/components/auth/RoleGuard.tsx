@@ -45,9 +45,20 @@ type AuthenticatedUserWithStatuses =
     roles?: string[];
     Roles?: string[];
 
+    role?: string;
+    Role?: string;
+
     roleStatuses?: UserRoleStatus[];
     RoleStatuses?: UserRoleStatus[];
+
+    nextStep?: string;
+    NextStep?: string;
   };
+
+type AuthMeResponse = {
+  user?: AuthenticatedUserWithStatuses;
+  User?: AuthenticatedUserWithStatuses;
+};
 
 const verificationStatuses = new Set([
   "pending",
@@ -55,6 +66,17 @@ const verificationStatuses = new Set([
   "under_review",
   "rejected",
   "needs_more_information",
+]);
+
+/*
+ * Roles that do not require operational verification.
+ *
+ * These roles are allowed from the normal roles array even when
+ * roleStatuses contains driver, mechanic, or supplier entries.
+ */
+const nonVerificationRoles = new Set([
+  "admin",
+  "customer",
 ]);
 
 function normalizeStatus(
@@ -76,7 +98,43 @@ function safeNormalizeRole(
     return "";
   }
 
-  return normalizeRole(role);
+  try {
+    return normalizeRole(role);
+  } catch {
+    return role
+      .trim()
+      .toLowerCase()
+      .replaceAll("-", "_")
+      .replaceAll(" ", "_");
+  }
+}
+
+function unwrapAuthenticatedUser(
+  data: unknown
+): AuthenticatedUserWithStatuses | null {
+  if (!data || typeof data !== "object") {
+    return null;
+  }
+
+  const response =
+    data as AuthMeResponse &
+      AuthenticatedUserWithStatuses;
+
+  if (
+    response.user &&
+    typeof response.user === "object"
+  ) {
+    return response.user;
+  }
+
+  if (
+    response.User &&
+    typeof response.User === "object"
+  ) {
+    return response.User;
+  }
+
+  return response;
 }
 
 function getRoleStatuses(
@@ -130,43 +188,126 @@ function getSafeUserRoles(
     return [];
   }
 
+  const collectedRoles: string[] = [];
+
   try {
     const resolvedRoles =
       getUserRoles(user);
 
-    if (!Array.isArray(resolvedRoles)) {
-      return [];
+    if (Array.isArray(resolvedRoles)) {
+      collectedRoles.push(
+        ...resolvedRoles
+      );
     }
-
-    return resolvedRoles
-      .map((role) =>
-        safeNormalizeRole(role)
-      )
-      .filter(Boolean);
   } catch {
-    const directRoles = Array.isArray(
-      user.roles
-    )
-      ? user.roles
-      : Array.isArray(user.Roles)
-        ? user.Roles
-        : [];
-
-    return directRoles
-      .map((role) =>
-        safeNormalizeRole(role)
-      )
-      .filter(Boolean);
+    // Continue using direct role properties.
   }
+
+  if (Array.isArray(user.roles)) {
+    collectedRoles.push(...user.roles);
+  }
+
+  if (Array.isArray(user.Roles)) {
+    collectedRoles.push(...user.Roles);
+  }
+
+  if (typeof user.role === "string") {
+    collectedRoles.push(user.role);
+  }
+
+  if (typeof user.Role === "string") {
+    collectedRoles.push(user.Role);
+  }
+
+  return Array.from(
+    new Set(
+      collectedRoles
+        .map((role) =>
+          safeNormalizeRole(role)
+        )
+        .filter(Boolean)
+    )
+  );
+}
+
+function getEffectiveActiveRoles(
+  user: AuthenticatedUserWithStatuses
+): {
+  activeRoles: string[];
+  roleStatuses: Array<{
+    role: string;
+    status: string;
+  }>;
+} {
+  const roleStatuses =
+    getRoleStatuses(user);
+
+  const directRoles =
+    getSafeUserRoles(user);
+
+  const rolesWithStatus = new Set(
+    roleStatuses.map(
+      (item) => item.role
+    )
+  );
+
+  /*
+   * Roles explicitly marked active by the backend.
+   */
+  const activeStatusRoles =
+    roleStatuses
+      .filter(
+        (item) =>
+          item.status === "active" ||
+          item.status === "approved"
+      )
+      .map((item) => item.role);
+
+  /*
+   * Keep roles that do not require verification, such as admin
+   * and customer, even when operational role statuses exist.
+   *
+   * Also retain a role when the backend has not returned any
+   * role-status entry for that particular role.
+   */
+  const directActiveRoles =
+    directRoles.filter(
+      (role) =>
+        nonVerificationRoles.has(role) ||
+        !rolesWithStatus.has(role)
+    );
+
+  return {
+    activeRoles: Array.from(
+      new Set([
+        ...activeStatusRoles,
+        ...directActiveRoles,
+      ])
+    ),
+    roleStatuses,
+  };
 }
 
 function clearAuthentication() {
-  localStorage.removeItem("alpha_token");
-  localStorage.removeItem("alpha_user");
+  localStorage.removeItem(
+    "alpha_token"
+  );
 
-  localStorage.removeItem("supplierId");
-  localStorage.removeItem("driverId");
-  localStorage.removeItem("mechanicId");
+  localStorage.removeItem(
+    "alpha_user"
+  );
+
+  localStorage.removeItem(
+    "supplierId"
+  );
+
+  localStorage.removeItem(
+    "driverId"
+  );
+
+  localStorage.removeItem(
+    "mechanicId"
+  );
 }
 
 export default function RoleGuard({
@@ -197,154 +338,162 @@ export default function RoleGuard({
     }, [allowedRoles]);
 
   useEffect(() => {
-    let isMounted = true;
+    let cancelled = false;
 
-    async function checkAccess() {
-      const token =
-        localStorage.getItem(
-          "alpha_token"
-        );
-
-      if (!token) {
-        if (isMounted) {
-          setStatus("blocked");
-        }
-
-        router.replace("/login");
-        return;
-      }
-
-      /*
-       * A missing allowedRoles property should not
-       * crash the application. However, allowing
-       * access without any required role would make
-       * the guard ineffective, so redirect instead.
-       */
-      if (
-        normalizedAllowedRoles.length === 0
-      ) {
-        console.error(
-          "RoleGuard requires at least one allowed role."
-        );
-
-        if (isMounted) {
-          setStatus("blocked");
-        }
-
-        router.replace("/unauthorized");
-        return;
-      }
-
-      try {
-        const response = await api.get(
-          "/api/Auth/me"
-        );
-
-        const user =
-          response.data as
-            AuthenticatedUserWithStatuses;
-
-        const roleStatuses =
-          getRoleStatuses(user);
-
-        const activeRolesFromStatuses =
-          roleStatuses
-            .filter(
-              (item) =>
-                item.status === "active"
-            )
-            .map((item) => item.role);
-
-        /*
-         * When roleStatuses is available, only
-         * status=active roles may access guarded
-         * operational workspaces.
-         */
-        const effectiveActiveRoles =
-          roleStatuses.length > 0
-            ? activeRolesFromStatuses
-            : getSafeUserRoles(user);
-
-        const uniqueActiveRoles =
-          Array.from(
-            new Set(
-              effectiveActiveRoles
-                .map((role) =>
-                  safeNormalizeRole(role)
-                )
-                .filter(Boolean)
-            )
-          );
-
-        const hasAccess =
-          normalizedAllowedRoles.some(
-            (allowedRole) =>
-              uniqueActiveRoles.includes(
-                allowedRole
-              )
-          );
-
-        localStorage.setItem(
-          "alpha_user",
-          JSON.stringify({
-            ...user,
-            roles: uniqueActiveRoles,
-            roleStatuses,
-          })
-        );
-
-        if (!hasAccess) {
-          const roleAwaitingVerification =
-            roleStatuses.find(
-              (item) =>
-                normalizedAllowedRoles.includes(
-                  item.role
-                ) &&
-                verificationStatuses.has(
-                  item.status
-                )
+    const timeoutId =
+      window.setTimeout(() => {
+        async function checkAccess() {
+          const token =
+            localStorage.getItem(
+              "alpha_token"
             );
 
-          if (isMounted) {
-            setStatus("blocked");
+          if (!token) {
+            if (!cancelled) {
+              setStatus("blocked");
+
+              router.replace(
+                "/login"
+              );
+            }
+
+            return;
           }
 
-          if (roleAwaitingVerification) {
-            router.replace(
-              "/verification"
+          if (
+            normalizedAllowedRoles.length === 0
+          ) {
+            console.error(
+              "RoleGuard requires at least one allowed role."
             );
-          } else {
-            router.replace(
-              "/unauthorized"
-            );
+
+            if (!cancelled) {
+              setStatus("blocked");
+
+              router.replace(
+                "/unauthorized"
+              );
+            }
+
+            return;
           }
 
-          return;
+          try {
+            const response =
+              await api.get(
+                "/api/Auth/me"
+              );
+
+            const user =
+              unwrapAuthenticatedUser(
+                response.data
+              );
+
+            if (!user) {
+              throw new Error(
+                "The authentication response did not contain a user."
+              );
+            }
+
+            const {
+              activeRoles,
+              roleStatuses,
+            } =
+              getEffectiveActiveRoles(
+                user
+              );
+
+            const hasAccess =
+              normalizedAllowedRoles.some(
+                (allowedRole) =>
+                  activeRoles.includes(
+                    allowedRole
+                  )
+              );
+
+            localStorage.setItem(
+              "alpha_user",
+              JSON.stringify({
+                ...user,
+                roles: activeRoles,
+                roleStatuses,
+              })
+            );
+
+            console.log(
+              "RoleGuard access check",
+              {
+                allowedRoles:
+                  normalizedAllowedRoles,
+                directRoles:
+                  getSafeUserRoles(user),
+                activeRoles,
+                roleStatuses,
+                hasAccess,
+              }
+            );
+
+            if (!hasAccess) {
+              const roleAwaitingVerification =
+                roleStatuses.find(
+                  (item) =>
+                    normalizedAllowedRoles.includes(
+                      item.role
+                    ) &&
+                    verificationStatuses.has(
+                      item.status
+                    )
+                );
+
+              if (!cancelled) {
+                setStatus("blocked");
+
+                if (
+                  roleAwaitingVerification
+                ) {
+                  router.replace(
+                    "/verification"
+                  );
+                } else {
+                  router.replace(
+                    "/unauthorized"
+                  );
+                }
+              }
+
+              return;
+            }
+
+            if (!cancelled) {
+              setStatus("allowed");
+            }
+          } catch (error: unknown) {
+            console.error(
+              "Role access check failed:",
+              error
+            );
+
+            if (!cancelled) {
+              clearAuthentication();
+
+              setStatus("blocked");
+
+              router.replace(
+                "/login"
+              );
+            }
+          }
         }
 
-        if (isMounted) {
-          setStatus("allowed");
-        }
-      } catch (error: unknown) {
-        console.error(
-          "Role access check failed:",
-          error
-        );
-
-        clearAuthentication();
-
-        if (isMounted) {
-          setStatus("blocked");
-        }
-
-        router.replace("/login");
-      }
-    }
-
-    void checkAccess();
+        void checkAccess();
+      }, 0);
 
     return () => {
-      isMounted = false;
+      cancelled = true;
+
+      window.clearTimeout(
+        timeoutId
+      );
     };
   }, [
     router,
