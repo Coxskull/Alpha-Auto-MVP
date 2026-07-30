@@ -8,6 +8,7 @@ import {
   Network,
   Package,
   Settings,
+  ShieldCheck,
   Store,
   Truck,
   Users,
@@ -27,6 +28,7 @@ const navigation = [
   { label: "Settlements", href: "/mission-control/settlement-queue", icon: WalletCards },
   { label: "Settings", href: "/mission-control/settings", icon: Settings },
   { label: "Referral Network", href: "/mission-control/referrals", icon: Network },
+  { label: "Role Verifications", href: "/mission-control/verifications", icon: ShieldCheck },
 ];
 
 export default function AdminApp({ children }: { children: React.ReactNode }) {
