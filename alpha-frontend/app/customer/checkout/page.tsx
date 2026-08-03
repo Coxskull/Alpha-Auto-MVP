@@ -5,10 +5,18 @@ import { useRouter } from "next/navigation";
 
 import { createOrder } from "@/services/orders";
 import { clearCart, getCart } from "@/services/cart";
+import PaymentSelector from "@/components/PaymentSelector";
 
+import { createPayment } from "@/services/paymentService";
 type CountryCode = "PH" | "MX" | "US";
 type CurrencyCode = "PHP" | "MXN" | "USD";
-type PaymentMethod = "cash" | "paypal" | "paymongo_gcash";
+type PaymentGateway =
+  | "cash"
+  | "paymongo"
+  | "paypal"
+  | "maya"
+  | "xendit"
+  | "hitpay";
 
 type CartItem = {
   productId: string;
@@ -140,13 +148,11 @@ export default function CheckoutPage() {
 
   const [selectedCurrency, setSelectedCurrency] =
     useState<CurrencyCode>("MXN");
-
-  const [selectedPaymentMethod, setSelectedPaymentMethod] =
-    useState<PaymentMethod>("cash");
+const [gateway, setGateway] =
+    useState<PaymentGateway>("cash");
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-
 useEffect(() => {
   let cancelled = false;
 
@@ -252,22 +258,21 @@ useEffect(() => {
 
     setSelectedCountry(country);
     setSelectedCurrency(settings.currency);
+
     setError("");
 
     if (country === "PH") {
-      if (selectedPaymentMethod === "paypal") {
-        setSelectedPaymentMethod("paymongo_gcash");
-      }
-
-      return;
+        if (gateway === "paypal") {
+            setGateway("paymongo");
+        }
     }
 
-    if (selectedPaymentMethod === "paymongo_gcash") {
-      setSelectedPaymentMethod(
-        country === "US" ? "paypal" : "cash"
-      );
+    if (country === "US") {
+        if (gateway === "paymongo") {
+            setGateway("paypal");
+        }
     }
-  }
+}
 
   async function submit() {
     setError("");
@@ -331,24 +336,26 @@ useEffect(() => {
     }
 
     if (
-      selectedPaymentMethod === "paymongo_gcash" &&
-      selectedCountry !== "PH"
-    ) {
-      setError(
-        "GCash through PayMongo is only available for Philippine orders."
-      );
-      return;
-    }
+    gateway === "paymongo" &&
+    selectedCountry !== "PH"
+) {
+    setError(
+        "PayMongo is only available in the Philippines."
+    );
 
-    if (
-      selectedPaymentMethod === "paypal" &&
-      selectedCountry === "PH"
-    ) {
-      setError(
-        "Use GCash through PayMongo or cash for Philippine orders."
-      );
-      return;
-    }
+    return;
+}
+
+   if (
+    gateway === "paypal" &&
+    selectedCountry === "PH"
+) {
+    setError(
+        "Use PayMongo instead of PayPal for Philippine orders."
+    );
+
+    return;
+}
 
     try {
       setLoading(true);
@@ -362,7 +369,7 @@ useEffect(() => {
           zone,
           countryCode: selectedCountry,
           currency: selectedCurrency,
-          paymentMethod: selectedPaymentMethod,
+          paymentGateway: gateway,
           items: cart.map((item) => ({
             productId: item.productId,
             quantity: Number(item.quantity),
@@ -378,24 +385,37 @@ useEffect(() => {
         );
       }
 
-      /*
-       * Do not clear the cart yet for online payments.
-       *
-       * The cart should be cleared after PayPal or PayMongo
-       * confirms that payment was successful.
-       */
-      if (
-        selectedPaymentMethod === "paypal" ||
-        selectedPaymentMethod === "paymongo_gcash"
-      ) {
-        router.push(`/customer/payment/${orderId}`);
-        return;
-      }
+     const payment = await createPayment({
 
-      clearCart();
-      setCart([]);
+    orderId,
 
-      router.push(`/customer/orders/${orderId}`);
+    gateway,
+
+    amount: estimatedTotal,
+
+    currency: selectedCurrency
+
+});
+
+if (!payment.success) {
+
+    throw new Error(payment.error);
+
+}
+
+if (gateway !== "cash") {
+
+    window.location.href = payment.checkoutUrl;
+
+    return;
+
+}
+
+clearCart();
+
+setCart([]);
+
+router.push(`/customer/orders/${orderId}`);
     } catch (submitError: unknown) {
       console.error(
         "Create order failed:",
@@ -409,23 +429,42 @@ useEffect(() => {
   }
 
   const submitButtonText = (() => {
+
     if (loading) {
-      return "Creating Order...";
+
+        return "Creating Order...";
+
     }
 
-    if (selectedPaymentMethod === "paypal") {
-      return "Continue to PayPal";
+    switch (gateway) {
+
+        case "paypal":
+
+            return "Continue to PayPal";
+
+        case "paymongo":
+
+            return "Continue to PayMongo";
+
+        case "maya":
+
+            return "Continue to Maya";
+
+        case "xendit":
+
+            return "Continue to Xendit";
+
+        case "hitpay":
+
+            return "Continue to HitPay";
+
+        default:
+
+            return "Create Cash Order";
+
     }
 
-    if (
-      selectedPaymentMethod === "paymongo_gcash"
-    ) {
-      return "Continue to GCash";
-    }
-
-    return "Create Cash Order";
-  })();
-
+})();
   if (!cartLoaded) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#020617] p-4 text-white">
@@ -606,52 +645,65 @@ useEffect(() => {
                 Payment method
               </label>
 
-              <select
-                id="paymentMethod"
-                value={selectedPaymentMethod}
-                disabled={loading}
-                onChange={(event) =>
-                  setSelectedPaymentMethod(
-                    event.target
-                      .value as PaymentMethod
-                  )
-                }
-                className="w-full rounded-xl border border-slate-600 bg-white p-3 text-black outline-none focus:border-emerald-500 disabled:cursor-not-allowed disabled:bg-slate-200"
-              >
-                <option value="cash">
-                  Cash
-                </option>
+              <div className="space-y-3">
 
-                {selectedCountry === "PH" && (
-                  <option value="paymongo_gcash">
-                    GCash through PayMongo
-                  </option>
-                )}
+    <label className="block text-sm font-medium text-slate-300">
 
-                {selectedCountry !== "PH" && (
-                  <option value="paypal">
-                    PayPal
-                  </option>
-                )}
-              </select>
+        Payment Gateway
+
+    </label>
+
+    <PaymentSelector
+    value={gateway}
+    onChange={(value) => setGateway(value as PaymentGateway)}
+/>
+
+</div>
             </div>
 
-            {selectedPaymentMethod ===
-              "paymongo_gcash" && (
+            {gateway ===
+              "paymongo" && (
               <div className="rounded-xl border border-blue-500/30 bg-blue-500/10 p-3 text-xs text-blue-200">
-                You will be redirected to PayMongo to
-                complete your GCash payment securely.
-              </div>
+
+    You will be redirected to PayMongo Checkout.
+
+</div>
             )}
 
-            {selectedPaymentMethod === "paypal" && (
+            {gateway === "paypal" && (
               <div className="rounded-xl border border-blue-500/30 bg-blue-500/10 p-3 text-xs text-blue-200">
                 You will be redirected to PayPal after
                 the order is created.
               </div>
             )}
+{gateway === "maya" && (
 
-            {selectedPaymentMethod === "cash" && (
+<div className="rounded-xl border border-blue-500/30 bg-blue-500/10 p-3 text-xs text-blue-200">
+
+    You will be redirected to Maya Checkout.
+
+</div>
+
+)}
+{gateway === "xendit" && (
+
+<div className="rounded-xl border border-blue-500/30 bg-blue-500/10 p-3 text-xs text-blue-200">
+
+    You will be redirected to Xendit Checkout.
+
+</div>
+
+)}
+{gateway === "hitpay" && (
+
+<div className="rounded-xl border border-blue-500/30 bg-blue-500/10 p-3 text-xs text-blue-200">
+
+    You will be redirected to HitPay Checkout.
+
+</div>
+
+)}
+            {gateway === "cash" && (
               <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200">
                 Your payment will remain pending until
                 the cash payment is confirmed.

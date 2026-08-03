@@ -11,10 +11,13 @@ export type CurrencyCode =
   | "MXN"
   | "USD";
 
-export type PaymentMethod =
+export type PaymentGateway =
   | "cash"
+  | "paymongo"
   | "paypal"
-  | "paymongo_gcash";
+  | "maya"
+  | "xendit"
+  | "hitpay";
 
 export type CreateOrderItemPayload = {
   productId: string;
@@ -30,7 +33,7 @@ export type CreateOrderPayload = {
 
   countryCode: CountryCode;
   currency: CurrencyCode;
-  paymentMethod: PaymentMethod;
+  paymentGateway: PaymentGateway;
 
   items: CreateOrderItemPayload[];
 };
@@ -84,7 +87,7 @@ export type CreateOrderResponse = {
     orderId?: string;
     amount?: number;
     currency?: CurrencyCode;
-    paymentMethod?: PaymentMethod;
+    paymentMethod?: string | null;
     paymentGateway?: string | null;
     paymentStatus?: string;
     paymentProvider?: string | null;
