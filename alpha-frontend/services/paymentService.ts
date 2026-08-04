@@ -4,7 +4,9 @@ import {
     CreatePaymentResponse
 } from "../types/payment";
 
-const API = import.meta.env.VITE_API_URL;
+const API =
+  process.env.NEXT_PUBLIC_API_URL ??
+  "https://alpha-backend-production-b8f6.up.railway.app/";
 
 export async function createPayment(
     request: CreatePaymentRequest
