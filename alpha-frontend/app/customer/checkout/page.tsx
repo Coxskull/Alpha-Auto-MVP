@@ -12,8 +12,9 @@ type CountryCode = "PH" | "MX" | "US";
 type CurrencyCode = "PHP" | "MXN" | "USD";
 type PaymentGateway =
   | "cash"
-  | "paymongo"
+  | "paymongo_gcash"
   | "paypal"
+  | "stripe"
   | "maya"
   | "xendit"
   | "hitpay";
@@ -263,12 +264,12 @@ useEffect(() => {
 
     if (country === "PH") {
         if (gateway === "paypal") {
-            setGateway("paymongo");
+            setGateway("paymongo_gcash");
         }
     }
 
     if (country === "US") {
-        if (gateway === "paymongo") {
+        if (gateway === "paymongo_gcash") {
             setGateway("paypal");
         }
     }
@@ -336,7 +337,7 @@ useEffect(() => {
     }
 
     if (
-    gateway === "paymongo" &&
+    gateway === "paymongo_gcash" &&
     selectedCountry !== "PH"
 ) {
     setError(
@@ -369,7 +370,7 @@ useEffect(() => {
           zone,
           countryCode: selectedCountry,
           currency: selectedCurrency,
-          paymentGateway: gateway,
+          paymentMethod: gateway,
           items: cart.map((item) => ({
             productId: item.productId,
             quantity: Number(item.quantity),
@@ -386,29 +387,28 @@ useEffect(() => {
       }
 
      const payment = await createPayment({
-
     orderId,
-
-    gateway,
-
-    amount: estimatedTotal,
-
-    currency: selectedCurrency
-
+    gateway
 });
 
 if (!payment.success) {
-
-    throw new Error(payment.error);
-
+    throw new Error(
+        payment.error ??
+        "Unable to create payment."
+    );
 }
 
 if (gateway !== "cash") {
+    if (!payment.checkoutUrl) {
+        throw new Error(
+            "Payment gateway did not return a checkout URL."
+        );
+    }
 
-    window.location.href = payment.checkoutUrl;
+    window.location.href =
+        payment.checkoutUrl;
 
     return;
-
 }
 
 clearCart();
@@ -442,7 +442,7 @@ router.push(`/customer/orders/${orderId}`);
 
             return "Continue to PayPal";
 
-        case "paymongo":
+        case "paymongo_gcash":
 
             return "Continue to PayMongo";
 
@@ -457,6 +457,9 @@ router.push(`/customer/orders/${orderId}`);
         case "hitpay":
 
             return "Continue to HitPay";
+
+            case "stripe":
+    return "Continue to Stripe";
 
         default:
 
@@ -662,7 +665,7 @@ router.push(`/customer/orders/${orderId}`);
             </div>
 
             {gateway ===
-              "paymongo" && (
+              "paymongo_gcash" && (
               <div className="rounded-xl border border-blue-500/30 bg-blue-500/10 p-3 text-xs text-blue-200">
 
     You will be redirected to PayMongo Checkout.
@@ -702,6 +705,13 @@ router.push(`/customer/orders/${orderId}`);
 
 </div>
 
+)}
+
+{gateway === "stripe" && (
+    <div className="rounded-xl border border-indigo-500/30 bg-indigo-500/10 p-3 text-xs text-indigo-200">
+        You will be redirected to Stripe Checkout
+        to securely complete your payment.
+    </div>
 )}
             {gateway === "cash" && (
               <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200">

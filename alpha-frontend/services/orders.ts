@@ -13,8 +13,9 @@ export type CurrencyCode =
 
 export type PaymentGateway =
   | "cash"
-  | "paymongo"
+  | "paymongo_gcash"
   | "paypal"
+  | "stripe"
   | "maya"
   | "xendit"
   | "hitpay";
@@ -33,7 +34,7 @@ export type CreateOrderPayload = {
 
   countryCode: CountryCode;
   currency: CurrencyCode;
-  paymentGateway: PaymentGateway;
+  paymentMethod: PaymentGateway;
 
   items: CreateOrderItemPayload[];
 };

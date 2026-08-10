@@ -9,76 +9,100 @@ export default function PaymentSelector({
 }: Props) {
 
     return (
+        <div className="space-y-3">
 
-        <div className="space-y-2">
-
-            <label>
-
+            <label className="flex items-center gap-3">
                 <input
                     type="radio"
-                    value="paymongo"
-                    checked={value === "paymongo"}
-                    onChange={(e) => onChange(e.target.value)}
+                    value="stripe"
+                    checked={value === "stripe"}
+                    onChange={(e) =>
+                        onChange(e.target.value)
+                    }
                 />
 
-                PayMongo
-
+                <span>
+                    Stripe
+                </span>
             </label>
 
-            <label>
+            <label className="flex items-center gap-3">
+                <input
+                    type="radio"
+                    value="paymongo_gcash"
+                    checked={
+                        value === "paymongo_gcash"
+                    }
+                    onChange={(e) =>
+                        onChange(e.target.value)
+                    }
+                />
 
+                <span>
+                    PayMongo / GCash
+                </span>
+            </label>
+
+            <label className="flex items-center gap-3">
                 <input
                     type="radio"
                     value="xendit"
                     checked={value === "xendit"}
-                    onChange={(e) => onChange(e.target.value)}
+                    onChange={(e) =>
+                        onChange(e.target.value)
+                    }
                 />
 
-                Xendit
-
+                <span>
+                    Xendit
+                </span>
             </label>
 
-            <label>
-
+            <label className="flex items-center gap-3">
                 <input
                     type="radio"
                     value="maya"
                     checked={value === "maya"}
-                    onChange={(e) => onChange(e.target.value)}
+                    onChange={(e) =>
+                        onChange(e.target.value)
+                    }
                 />
 
-                Maya Business
-
+                <span>
+                    Maya Business
+                </span>
             </label>
 
-            <label>
-
+            <label className="flex items-center gap-3">
                 <input
                     type="radio"
                     value="hitpay"
                     checked={value === "hitpay"}
-                    onChange={(e) => onChange(e.target.value)}
+                    onChange={(e) =>
+                        onChange(e.target.value)
+                    }
                 />
 
-                HitPay
-
+                <span>
+                    HitPay
+                </span>
             </label>
 
-            <label>
-
+            <label className="flex items-center gap-3">
                 <input
                     type="radio"
                     value="paypal"
                     checked={value === "paypal"}
-                    onChange={(e) => onChange(e.target.value)}
+                    onChange={(e) =>
+                        onChange(e.target.value)
+                    }
                 />
 
-                PayPal
-
+                <span>
+                    PayPal
+                </span>
             </label>
 
         </div>
-
     );
-
 }

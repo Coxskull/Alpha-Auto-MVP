@@ -1,21 +1,29 @@
 import axios from "axios";
-import {
-    CreatePaymentRequest,
-    CreatePaymentResponse
-} from "../types/payment";
 
 const API =
   process.env.NEXT_PUBLIC_API_URL ??
-  "https://alpha-backend-production-b8f6.up.railway.app/";
+  "https://alpha-backend-production-b8f6.up.railway.app";
+
+export interface CreatePaymentRequest {
+  orderId: string;
+  gateway: string;
+}
+
+export interface CreatePaymentResponse {
+  success: boolean;
+  checkoutUrl?: string;
+  gatewayPaymentId?: string;
+  error?: string;
+}
 
 export async function createPayment(
-    request: CreatePaymentRequest
+  request: CreatePaymentRequest
 ): Promise<CreatePaymentResponse> {
-
-    const response = await axios.post<CreatePaymentResponse>(
-        `${API}/api/payments/create`,
-        request
+  const response =
+    await axios.post<CreatePaymentResponse>(
+      `${API}/api/payments/create`,
+      request
     );
 
-    return response.data;
+  return response.data;
 }
