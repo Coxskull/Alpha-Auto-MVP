@@ -8,25 +8,6 @@ const API_URL =
    axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
 });
-export interface CommissionTier {
-  id?: string;
-  tierOrder: number;
-  minimumAmount: number;
-  maximumAmount: number | null;
-  commissionPercentage: number;
-  isActive: boolean;
-}
-
-export interface CommissionPolicy {
-  id: string;
-  policyName: string;
-  currency: string;
-  version: number;
-  effectiveFrom: string;
-  effectiveTo: string | null;
-  isActive: boolean;
-  tiers: CommissionTier[];
-}
 
 function getAuthHeaders(): HeadersInit {
   const token =
