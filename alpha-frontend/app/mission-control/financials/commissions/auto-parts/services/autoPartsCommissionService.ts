@@ -31,13 +31,14 @@ export async function calculateCommission(
   subtotal: number,
   currency: string
 ): Promise<CommissionCalculationResult> {
-  const response = await api.post<CommissionCalculationResult>(
-    "/api/admin/auto-parts-commission/calculate",
-    {
-      subtotal,
-      currency,
-    }
-  );
+  const response =
+    await api.post<CommissionCalculationResult>(
+      "/api/admin/auto-parts-commission/calculate",
+      {
+        subtotal,
+        currency,
+      }
+    );
 
   return response.data;
 }
@@ -48,15 +49,67 @@ export async function calculateCommission(
 export async function updateTier(
   tierId: string,
   data: {
-    minimum: number;
-    maximum: number | null;
-    commissionRate: number;
+    minimumAmount: number;
+    maximumAmount: number | null;
+    commissionPercentage: number;
     isActive: boolean;
   }
 ): Promise<CommissionTier> {
   const response = await api.put<CommissionTier>(
     `/api/admin/auto-parts-commission/tiers/${tierId}`,
     data
+  );
+
+  return response.data;
+}
+
+/**
+ * Create a new commission tier.
+ */
+export async function createTier(
+  policyId: string,
+  data: {
+    minimumAmount: number;
+    maximumAmount: number | null;
+    commissionPercentage: number;
+    isActive: boolean;
+  }
+): Promise<CommissionTier> {
+  const response = await api.post<CommissionTier>(
+    `/api/admin/auto-parts-commission/policies/${policyId}/tiers`,
+    data
+  );
+
+  return response.data;
+}
+
+/**
+ * Deactivate/delete a commission tier.
+ *
+ * Backend performs a soft delete by setting IsActive = false.
+ */
+export async function deleteTier(
+  tierId: string
+): Promise<{ message: string }> {
+  const response = await api.delete<{ message: string }>(
+    `/api/admin/auto-parts-commission/tiers/${tierId}`
+  );
+
+  return response.data;
+}
+
+/**
+ * Activate/deactivate a tier.
+ */
+export async function updateTierStatus(
+  tierId: string,
+  isActive: boolean
+): Promise<CommissionTier> {
+  const response = await api.patch<CommissionTier>(
+    `/api/admin/auto-parts-commission/tiers/${tierId}/status`,
+    {
+      isActive,
+    }
   );
 
   return response.data;

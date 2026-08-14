@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 import {
   getCurrentPolicy,
   updateTier,
+  createTier,
+  deleteTier,
 } from "./services/autoPartsCommissionService";
 
 import type {
@@ -33,9 +35,10 @@ export default function AutoPartsCommissionPage() {
   const [saving, setSaving] =
     useState(false);
 
-  /**
-   * Load the current commission policy.
-   */
+  // ============================================================
+  // LOAD POLICY
+  // ============================================================
+
   async function loadPolicy() {
     try {
       setError(null);
@@ -58,9 +61,10 @@ export default function AutoPartsCommissionPage() {
     }
   }
 
-  /**
-   * Initial page load.
-   */
+  // ============================================================
+  // INITIAL LOAD
+  // ============================================================
+
   useEffect(() => {
     let cancelled = false;
 
@@ -102,9 +106,75 @@ export default function AutoPartsCommissionPage() {
     };
   }, []);
 
-  /**
-   * Open editor for an existing tier.
-   */
+  // ============================================================
+  // ADD TIER
+  // ============================================================
+
+  function handleAddTier() {
+    if (!policy) {
+      alert("Commission policy is not loaded.");
+      return;
+    }
+
+    const tiers = [...policy.tiers].sort(
+      (a, b) => a.tierOrder - b.tierOrder
+    );
+
+    const nextTierOrder =
+      tiers.length > 0
+        ? Math.max(
+            ...tiers.map(
+              (tier) => tier.tierOrder
+            )
+          ) + 1
+        : 1;
+
+    const lastTier =
+      tiers.length > 0
+        ? tiers[tiers.length - 1]
+        : null;
+
+    /*
+     * If the last tier is currently unlimited,
+     * we cannot simply create another tier after it.
+     *
+     * Instead, tell the user to edit the current
+     * unlimited tier first.
+     */
+    if (
+      lastTier &&
+      lastTier.maximumAmount == null
+    ) {
+      alert(
+        "The current final tier has no maximum amount. Edit that tier and give it a maximum amount before adding another tier."
+      );
+
+      return;
+    }
+
+    const newTier: CommissionTier = {
+      id: "",
+
+      tierOrder: nextTierOrder,
+
+      minimumAmount:
+        lastTier?.maximumAmount ?? 0,
+
+      maximumAmount: null,
+
+      commissionPercentage: 0,
+
+      isActive: true,
+    };
+
+    setEditingTier(newTier);
+    setShowTierEditor(true);
+  }
+
+  // ============================================================
+  // EDIT TIER
+  // ============================================================
+
   function handleEditTier(
     tier: CommissionTier
   ) {
@@ -112,9 +182,56 @@ export default function AutoPartsCommissionPage() {
     setShowTierEditor(true);
   }
 
-  /**
-   * Close editor.
-   */
+  // ============================================================
+  // DELETE / DEACTIVATE TIER
+  // ============================================================
+
+  async function handleDeleteTier(
+    tier: CommissionTier
+  ) {
+    if (!tier.id) {
+      alert(
+        "This tier has not been saved yet."
+      );
+
+      return;
+    }
+
+    const confirmed =
+      window.confirm(
+        `Are you sure you want to deactivate Tier ${tier.tierOrder}?`
+      );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setSaving(true);
+
+      await deleteTier(tier.id);
+
+      await loadPolicy();
+    } catch (err) {
+      console.error(
+        "Failed to delete commission tier:",
+        err
+      );
+
+      alert(
+        err instanceof Error
+          ? err.message
+          : "Failed to delete commission tier."
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  // ============================================================
+  // CLOSE EDITOR
+  // ============================================================
+
   function handleCloseEditor() {
     if (saving) return;
 
@@ -122,15 +239,16 @@ export default function AutoPartsCommissionPage() {
     setEditingTier(null);
   }
 
-  /**
-   * Save an existing tier.
-   */
+  // ============================================================
+  // SAVE TIER
+  // ============================================================
+
   async function handleSaveTier(
     tier: CommissionTier
   ) {
-    if (!tier.id) {
+    if (!policy) {
       alert(
-        "This tier does not have an ID and cannot be updated."
+        "Commission policy is not loaded."
       );
 
       return;
@@ -139,13 +257,45 @@ export default function AutoPartsCommissionPage() {
     try {
       setSaving(true);
 
-      await updateTier(tier.id, {
-        minimum: tier.minimumAmount,
-        maximum: tier.maximumAmount,
-        commissionRate:
-          tier.commissionPercentage,
-        isActive: tier.isActive,
-      });
+      // ========================================================
+      // UPDATE EXISTING TIER
+      // ========================================================
+
+      if (tier.id) {
+        await updateTier(tier.id, {
+          minimumAmount:
+            tier.minimumAmount,
+
+          maximumAmount:
+            tier.maximumAmount,
+
+          commissionPercentage:
+            tier.commissionPercentage,
+
+          isActive:
+            tier.isActive,
+        });
+      }
+
+      // ========================================================
+      // CREATE NEW TIER
+      // ========================================================
+
+      else {
+        await createTier(policy.id, {
+          minimumAmount:
+            tier.minimumAmount,
+
+          maximumAmount:
+            tier.maximumAmount,
+
+          commissionPercentage:
+            tier.commissionPercentage,
+
+          isActive:
+            tier.isActive,
+        });
+      }
 
       setShowTierEditor(false);
       setEditingTier(null);
@@ -167,6 +317,10 @@ export default function AutoPartsCommissionPage() {
     }
   }
 
+  // ============================================================
+  // LOADING
+  // ============================================================
+
   if (loading) {
     return (
       <div className="flex min-h-[300px] items-center justify-center">
@@ -176,6 +330,10 @@ export default function AutoPartsCommissionPage() {
       </div>
     );
   }
+
+  // ============================================================
+  // ERROR
+  // ============================================================
 
   if (error) {
     return (
@@ -199,6 +357,10 @@ export default function AutoPartsCommissionPage() {
     );
   }
 
+  // ============================================================
+  // NO POLICY
+  // ============================================================
+
   if (!policy) {
     return (
       <div className="rounded-xl border bg-white p-6">
@@ -209,12 +371,20 @@ export default function AutoPartsCommissionPage() {
     );
   }
 
+  // ============================================================
+  // PAGE
+  // ============================================================
+
   return (
     <>
       <div className="space-y-6 p-6">
 
-        {/* PAGE HEADER */}
+        {/* ======================================================
+            PAGE HEADER
+        ====================================================== */}
+
         <div className="flex items-start justify-between">
+
           <div>
             <h1 className="text-2xl font-bold text-gray-900">
               Auto Parts Commission
@@ -228,17 +398,24 @@ export default function AutoPartsCommissionPage() {
           <button
             type="button"
             onClick={loadPolicy}
-            className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            disabled={saving}
+            className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Refresh
           </button>
+
         </div>
 
-        {/* POLICY SUMMARY */}
+        {/* ======================================================
+            POLICY SUMMARY
+        ====================================================== */}
+
         <div className="rounded-xl border bg-white p-6 shadow-sm">
+
           <div className="flex items-center justify-between">
 
             <div>
+
               <h2 className="text-lg font-semibold text-gray-900">
                 {policy.policyName}
               </h2>
@@ -250,6 +427,7 @@ export default function AutoPartsCommissionPage() {
               <p className="text-sm text-gray-500">
                 Version {policy.version}
               </p>
+
             </div>
 
             <span
@@ -265,16 +443,27 @@ export default function AutoPartsCommissionPage() {
             </span>
 
           </div>
+
         </div>
 
-        {/* COMMISSION TIERS */}
+        {/* ======================================================
+            COMMISSION TIERS
+        ====================================================== */}
+
         <TierTable
           tiers={policy.tiers}
+          onAdd={handleAddTier}
           onEdit={handleEditTier}
+          onDelete={handleDeleteTier}
+          saving={saving}
         />
+
       </div>
 
-      {/* EDIT MODAL */}
+      {/* ========================================================
+          TIER EDITOR MODAL
+      ======================================================== */}
+
       {showTierEditor && editingTier && (
         <TierEditor
           tier={editingTier}
@@ -288,22 +477,42 @@ export default function AutoPartsCommissionPage() {
 }
 
 
-/* =========================================================
+/* =============================================================
    TIER TABLE
-========================================================= */
+============================================================= */
 
 function TierTable({
   tiers,
+  onAdd,
   onEdit,
+  onDelete,
+  saving,
 }: {
   tiers: CommissionTier[];
-  onEdit: (tier: CommissionTier) => void;
+  onAdd: () => void;
+  onEdit: (
+    tier: CommissionTier
+  ) => void;
+  onDelete: (
+    tier: CommissionTier
+  ) => void;
+  saving: boolean;
 }) {
+  const sortedTiers = [...tiers].sort(
+    (a, b) =>
+      a.tierOrder - b.tierOrder
+  );
+
   return (
     <div className="overflow-hidden rounded-xl border bg-white shadow-sm">
 
+      {/* ========================================================
+          TABLE HEADER
+      ======================================================== */}
+
       <div className="border-b px-6 py-4">
-        <div className="flex items-center justify-between">
+
+        <div className="flex items-center justify-between gap-4">
 
           <div>
             <h2 className="font-semibold text-gray-900">
@@ -311,13 +520,29 @@ function TierTable({
             </h2>
 
             <p className="mt-1 text-sm text-gray-500">
-              Progressive commission applied only to the
-              auto-parts subtotal.
+              Progressive commission applied only to
+              the auto-parts subtotal.
             </p>
           </div>
 
+          {/* ADD BUTTON */}
+
+          <button
+            type="button"
+            onClick={onAdd}
+            disabled={saving}
+            className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            + Add Tier
+          </button>
+
         </div>
+
       </div>
+
+      {/* ========================================================
+          TABLE
+      ======================================================== */}
 
       <div className="overflow-x-auto">
 
@@ -348,7 +573,7 @@ function TierTable({
               </th>
 
               <th className="px-6 py-3 text-right">
-                Action
+                Actions
               </th>
 
             </tr>
@@ -357,32 +582,39 @@ function TierTable({
 
           <tbody className="divide-y">
 
-            {tiers.length === 0 ? (
+            {sortedTiers.length === 0 ? (
+
               <tr>
+
                 <td
                   colSpan={6}
                   className="px-6 py-10 text-center text-sm text-gray-500"
                 >
                   No commission tiers found.
                 </td>
+
               </tr>
+
             ) : (
-              tiers.map((tier) => (
+
+              sortedTiers.map((tier) => (
 
                 <tr
                   key={
                     tier.id ??
-                    tier.tierOrder
+                    `new-${tier.tierOrder}`
                   }
                   className="text-sm hover:bg-gray-50"
                 >
 
                   {/* TIER */}
+
                   <td className="px-6 py-4 font-medium text-gray-900">
                     Tier {tier.tierOrder}
                   </td>
 
                   {/* MINIMUM */}
+
                   <td className="px-6 py-4 text-gray-700">
                     {formatCurrency(
                       tier.minimumAmount
@@ -390,20 +622,25 @@ function TierTable({
                   </td>
 
                   {/* MAXIMUM */}
+
                   <td className="px-6 py-4 text-gray-700">
+
                     {tier.maximumAmount == null
                       ? "Above"
                       : formatCurrency(
                           tier.maximumAmount
                         )}
+
                   </td>
 
                   {/* COMMISSION */}
+
                   <td className="px-6 py-4 font-semibold text-gray-900">
                     {tier.commissionPercentage}%
                   </td>
 
                   {/* STATUS */}
+
                   <td className="px-6 py-4">
 
                     <span
@@ -420,24 +657,48 @@ function TierTable({
 
                   </td>
 
-                  {/* ACTION */}
-                  <td className="px-6 py-4 text-right">
+                  {/* ACTIONS */}
 
-                    <button
-                      type="button"
-                      onClick={() =>
-                        onEdit(tier)
-                      }
-                      className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                    >
-                      Edit
-                    </button>
+                  <td className="px-6 py-4">
+
+                    <div className="flex justify-end gap-2">
+
+                      {/* EDIT */}
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onEdit(tier)
+                        }
+                        disabled={saving}
+                        className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        Edit
+                      </button>
+
+                      {/* DELETE */}
+
+                      {tier.isActive && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            onDelete(tier)
+                          }
+                          disabled={saving}
+                          className="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          Delete
+                        </button>
+                      )}
+
+                    </div>
 
                   </td>
 
                 </tr>
 
               ))
+
             )}
 
           </tbody>
@@ -451,9 +712,9 @@ function TierTable({
 }
 
 
-/* =========================================================
+/* =============================================================
    TIER EDITOR
-========================================================= */
+============================================================= */
 
 function TierEditor({
   tier,
@@ -464,13 +725,23 @@ function TierEditor({
   tier: CommissionTier;
   saving: boolean;
   onCancel: () => void;
-  onSave: (tier: CommissionTier) => void;
+  onSave: (
+    tier: CommissionTier
+  ) => void;
 }) {
   const [form, setForm] =
-    useState<CommissionTier>(tier);
+    useState<CommissionTier>({
+      ...tier,
+    });
 
   const [isAbove, setIsAbove] =
-    useState(tier.maximumAmount == null);
+    useState(
+      tier.maximumAmount == null
+    );
+
+  // ============================================================
+  // UPDATE FORM
+  // ============================================================
 
   function updateForm(
     changes: Partial<CommissionTier>
@@ -481,10 +752,18 @@ function TierEditor({
     }));
   }
 
+  // ============================================================
+  // SUBMIT
+  // ============================================================
+
   function handleSubmit(
-    event: React.FormEvent
+    event: React.FormEvent<HTMLFormElement>
   ) {
     event.preventDefault();
+
+    // ----------------------------------------------------------
+    // MINIMUM
+    // ----------------------------------------------------------
 
     if (
       !Number.isFinite(
@@ -498,6 +777,10 @@ function TierEditor({
 
       return;
     }
+
+    // ----------------------------------------------------------
+    // COMMISSION
+    // ----------------------------------------------------------
 
     if (
       !Number.isFinite(
@@ -513,7 +796,12 @@ function TierEditor({
       return;
     }
 
+    // ----------------------------------------------------------
+    // MAXIMUM
+    // ----------------------------------------------------------
+
     if (!isAbove) {
+
       if (
         form.maximumAmount == null ||
         !Number.isFinite(
@@ -539,39 +827,58 @@ function TierEditor({
       }
     }
 
+    // ----------------------------------------------------------
+    // SAVE
+    // ----------------------------------------------------------
+
     onSave({
       ...form,
-      maximumAmount: isAbove
-        ? null
-        : form.maximumAmount,
+
+      maximumAmount:
+        isAbove
+          ? null
+          : form.maximumAmount,
     });
   }
+
+  const isNewTier =
+    !tier.id;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
 
       <div className="w-full max-w-lg rounded-2xl bg-white shadow-xl">
 
-        {/* MODAL HEADER */}
+        {/* ====================================================
+            HEADER
+        ==================================================== */}
+
         <div className="border-b px-6 py-4">
 
           <div className="flex items-center justify-between">
 
             <div>
+
               <h2 className="text-lg font-semibold text-gray-900">
-                Edit Tier {tier.tierOrder}
+
+                {isNewTier
+                  ? `Add Tier ${tier.tierOrder}`
+                  : `Edit Tier ${tier.tierOrder}`}
+
               </h2>
 
               <p className="mt-1 text-sm text-gray-500">
-                Update the commission rules for this tier.
+                Configure the commission rules for this tier.
               </p>
+
             </div>
 
             <button
               type="button"
               onClick={onCancel}
               disabled={saving}
-              className="text-xl text-gray-400 hover:text-gray-600 disabled:opacity-50"
+              className="text-2xl leading-none text-gray-400 hover:text-gray-600 disabled:opacity-50"
+              aria-label="Close"
             >
               ×
             </button>
@@ -580,14 +887,21 @@ function TierEditor({
 
         </div>
 
-        {/* FORM */}
+        {/* ====================================================
+            FORM
+        ==================================================== */}
+
         <form
           onSubmit={handleSubmit}
           className="space-y-5 p-6"
         >
 
-          {/* MINIMUM */}
+          {/* ==================================================
+              MINIMUM
+          ================================================== */}
+
           <div>
+
             <label className="mb-1 block text-sm font-medium text-gray-700">
               Minimum Amount
             </label>
@@ -596,20 +910,33 @@ function TierEditor({
               type="number"
               min="0"
               step="0.01"
-              value={form.minimumAmount}
+              value={
+                Number.isFinite(
+                  form.minimumAmount
+                )
+                  ? form.minimumAmount
+                  : ""
+              }
               onChange={(event) =>
                 updateForm({
                   minimumAmount:
-                    Number(
-                      event.target.value
-                    ),
+                    event.target.value === ""
+                      ? 0
+                      : Number(
+                          event.target.value
+                        ),
                 })
               }
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100"
+              disabled={saving}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 disabled:bg-gray-100"
             />
+
           </div>
 
-          {/* MAXIMUM */}
+          {/* ==================================================
+              MAXIMUM
+          ================================================== */}
+
           <div>
 
             <label className="mb-1 block text-sm font-medium text-gray-700">
@@ -620,11 +947,15 @@ function TierEditor({
               type="number"
               min="0"
               step="0.01"
-              disabled={isAbove}
+              disabled={
+                saving ||
+                isAbove
+              }
               value={
                 isAbove
                   ? ""
-                  : form.maximumAmount ?? ""
+                  : form.maximumAmount ??
+                    ""
               }
               onChange={(event) =>
                 updateForm({
@@ -636,7 +967,7 @@ function TierEditor({
                         ),
                 })
               }
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none disabled:bg-gray-100 focus:border-purple-500 focus:ring-2 focus:ring-purple-100"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 disabled:bg-gray-100"
               placeholder={
                 isAbove
                   ? "No maximum"
@@ -649,6 +980,7 @@ function TierEditor({
               <input
                 type="checkbox"
                 checked={isAbove}
+                disabled={saving}
                 onChange={(event) =>
                   setIsAbove(
                     event.target.checked
@@ -657,12 +989,17 @@ function TierEditor({
               />
 
               No maximum — Above this amount
+
             </label>
 
           </div>
 
-          {/* COMMISSION */}
+          {/* ==================================================
+              COMMISSION
+          ================================================== */}
+
           <div>
+
             <label className="mb-1 block text-sm font-medium text-gray-700">
               Commission Percentage
             </label>
@@ -675,17 +1012,24 @@ function TierEditor({
                 max="100"
                 step="0.01"
                 value={
-                  form.commissionPercentage
+                  Number.isFinite(
+                    form.commissionPercentage
+                  )
+                    ? form.commissionPercentage
+                    : ""
                 }
                 onChange={(event) =>
                   updateForm({
                     commissionPercentage:
-                      Number(
-                        event.target.value
-                      ),
+                      event.target.value === ""
+                        ? 0
+                        : Number(
+                            event.target.value
+                          ),
                   })
                 }
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 pr-10 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100"
+                disabled={saving}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 pr-10 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 disabled:bg-gray-100"
               />
 
               <span className="absolute right-3 top-2 text-gray-500">
@@ -693,9 +1037,13 @@ function TierEditor({
               </span>
 
             </div>
+
           </div>
 
-          {/* STATUS */}
+          {/* ==================================================
+              STATUS
+          ================================================== */}
+
           <div>
 
             <label className="mb-1 block text-sm font-medium text-gray-700">
@@ -708,6 +1056,7 @@ function TierEditor({
                   ? "active"
                   : "inactive"
               }
+              disabled={saving}
               onChange={(event) =>
                 updateForm({
                   isActive:
@@ -715,8 +1064,9 @@ function TierEditor({
                     "active",
                 })
               }
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 disabled:bg-gray-100"
             >
+
               <option value="active">
                 Active
               </option>
@@ -724,18 +1074,22 @@ function TierEditor({
               <option value="inactive">
                 Inactive
               </option>
+
             </select>
 
           </div>
 
-          {/* ACTIONS */}
+          {/* ==================================================
+              ACTIONS
+          ================================================== */}
+
           <div className="flex justify-end gap-3 border-t pt-5">
 
             <button
               type="button"
               onClick={onCancel}
               disabled={saving}
-              className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Cancel
             </button>
@@ -747,7 +1101,9 @@ function TierEditor({
             >
               {saving
                 ? "Saving..."
-                : "Save Changes"}
+                : isNewTier
+                  ? "Add Tier"
+                  : "Save Changes"}
             </button>
 
           </div>
@@ -761,9 +1117,9 @@ function TierEditor({
 }
 
 
-/* =========================================================
+/* =============================================================
    HELPERS
-========================================================= */
+============================================================= */
 
 function formatCurrency(
   value: number
