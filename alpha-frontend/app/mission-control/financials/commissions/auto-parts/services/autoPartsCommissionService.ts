@@ -3,6 +3,7 @@ import api from "@/services/api";
 import type {
   CommissionPolicy,
   CommissionCalculationResult,
+  CommissionTier,
 } from "../types/autoPartsCommission";
 
 /**
@@ -30,14 +31,33 @@ export async function calculateCommission(
   subtotal: number,
   currency: string
 ): Promise<CommissionCalculationResult> {
-  const response =
-    await api.post<CommissionCalculationResult>(
-      "/api/admin/auto-parts-commission/calculate",
-      {
-        subtotal,
-        currency,
-      }
-    );
+  const response = await api.post<CommissionCalculationResult>(
+    "/api/admin/auto-parts-commission/calculate",
+    {
+      subtotal,
+      currency,
+    }
+  );
+
+  return response.data;
+}
+
+/**
+ * Update an existing commission tier.
+ */
+export async function updateTier(
+  tierId: string,
+  data: {
+    minimum: number;
+    maximum: number | null;
+    commissionRate: number;
+    isActive: boolean;
+  }
+): Promise<CommissionTier> {
+  const response = await api.put<CommissionTier>(
+    `/api/admin/auto-parts-commission/tiers/${tierId}`,
+    data
+  );
 
   return response.data;
 }
