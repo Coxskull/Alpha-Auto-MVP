@@ -7,6 +7,7 @@ import {
   MessageSquare,
   Network,
   Package,
+  Percent,
   Settings,
   ShieldCheck,
   Store,
@@ -14,24 +15,98 @@ import {
   Users,
   WalletCards,
 } from "lucide-react";
+
 import RolePortalShell from "./layout/RolePortalShell";
 
 const navigation = [
-  { label: "Dashboard", href: "/mission-control/dashboard", icon: LayoutDashboard },
-  { label: "Orders", href: "/mission-control/orders", icon: Package },
-  { label: "Drivers", href: "/mission-control/drivers", icon: Truck },
-  { label: "Suppliers", href: "/mission-control/suppliers", icon: Store },
-  { label: "Users", href: "/mission-control/users", icon: Users },
-  { label: "Analytics", href: "/mission-control/analytics", icon: BarChart3 },
-  { label: "Messages", href: "/mission-control/messages", icon: MessageSquare },
-  { label: "Escalations", href: "/mission-control/escalations", icon: AlertTriangle },
-  { label: "Settlements", href: "/mission-control/settlement-queue", icon: WalletCards },
-  { label: "Settings", href: "/mission-control/settings", icon: Settings },
-  { label: "Referral Network", href: "/mission-control/referrals", icon: Network },
-  { label: "Role Verifications", href: "/mission-control/verifications", icon: ShieldCheck },
+  {
+    label: "Dashboard",
+    href: "/mission-control/dashboard",
+    icon: LayoutDashboard,
+  },
+
+  {
+    label: "Orders",
+    href: "/mission-control/orders",
+    icon: Package,
+  },
+
+  {
+    label: "Drivers",
+    href: "/mission-control/drivers",
+    icon: Truck,
+  },
+
+  {
+    label: "Suppliers",
+    href: "/mission-control/suppliers",
+    icon: Store,
+  },
+
+  {
+    label: "Users",
+    href: "/mission-control/users",
+    icon: Users,
+  },
+
+  {
+    label: "Analytics",
+    href: "/mission-control/analytics",
+    icon: BarChart3,
+  },
+
+  {
+    label: "Messages",
+    href: "/mission-control/messages",
+    icon: MessageSquare,
+  },
+
+  {
+    label: "Escalations",
+    href: "/mission-control/escalations",
+    icon: AlertTriangle,
+  },
+
+  {
+    label: "Settlements",
+    href: "/mission-control/settlement-queue",
+    icon: WalletCards,
+  },
+
+  /* =====================================================
+     COMMISSIONS
+  ===================================================== */
+
+  {
+    label: "Auto Parts Commission",
+    href: "/mission-control/financials/commissions/auto-parts",
+    icon: Percent,
+  },
+
+  {
+    label: "Referral Network",
+    href: "/mission-control/referrals",
+    icon: Network,
+  },
+
+  {
+    label: "Role Verifications",
+    href: "/mission-control/verifications",
+    icon: ShieldCheck,
+  },
+
+  {
+    label: "Settings",
+    href: "/mission-control/settings",
+    icon: Settings,
+  },
 ];
 
-export default function AdminApp({ children }: { children: React.ReactNode }) {
+export default function AdminApp({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <RolePortalShell
       title="Mission Control"
