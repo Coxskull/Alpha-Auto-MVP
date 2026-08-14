@@ -3,12 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMemo, useSyncExternalStore } from "react";
+
 import {
   AlertTriangle,
   BarChart3,
   LayoutDashboard,
   MessageSquare,
   Package,
+  Percent,
   Settings,
   Store,
   Truck,
@@ -37,60 +39,88 @@ type NavItem = {
   allowedRoles?: string[];
 };
 
+/* =========================================================
+   NAVIGATION ITEMS
+========================================================= */
+
 const navItems: NavItem[] = [
   {
     label: "Mission Control",
     href: "/mission-control/dashboard",
     icon: LayoutDashboard,
   },
+
   {
     label: "Orders",
     href: "/mission-control/orders",
     icon: Package,
   },
+
   {
     label: "Drivers",
     href: "/mission-control/drivers",
     icon: Truck,
   },
+
   {
     label: "Suppliers",
     href: "/mission-control/suppliers",
     icon: Store,
   },
+
   {
     label: "Users",
     href: "/mission-control/users",
     icon: Users,
     allowedRoles: ["admin"],
   },
+
   {
     label: "Analytics",
     href: "/mission-control/analytics",
     icon: BarChart3,
   },
+
   {
     label: "Messages",
     href: "/mission-control/messages",
     icon: MessageSquare,
   },
+
   {
     label: "Escalations",
     href: "/mission-control/escalations",
     icon: AlertTriangle,
   },
+
+  /* =====================================================
+     FINANCIALS
+  ===================================================== */
+
   {
     label: "Settlement Queue",
     href: "/mission-control/settlement-queue",
     icon: WalletCards,
     allowedRoles: ["admin"],
   },
+
+  {
+    label: "Auto Parts Commission",
+    href: "/mission-control/financials/commissions/auto-parts",
+    icon: Percent,
+    allowedRoles: ["admin"],
+  },
+
   {
     label: "Settings",
     href: "/mission-control/settings",
     icon: Settings,
   },
 ];
+
+/* =========================================================
+   STORED USER SUBSCRIPTION
+========================================================= */
 
 function subscribeToStoredUser(
   callback: () => void
@@ -105,20 +135,32 @@ function subscribeToStoredUser(
     callback();
   }
 
-  window.addEventListener("storage", handleStorage);
+  window.addEventListener(
+    "storage",
+    handleStorage
+  );
+
   window.addEventListener(
     "alpha-auth-changed",
     handleAuthChange
   );
 
   return () => {
-    window.removeEventListener("storage", handleStorage);
+    window.removeEventListener(
+      "storage",
+      handleStorage
+    );
+
     window.removeEventListener(
       "alpha-auth-changed",
       handleAuthChange
     );
   };
 }
+
+/* =========================================================
+   STORED USER SNAPSHOT
+========================================================= */
 
 function getStoredUserSnapshot(): string | null {
   return localStorage.getItem("alpha_user");
@@ -127,6 +169,10 @@ function getStoredUserSnapshot(): string | null {
 function getServerStoredUserSnapshot(): null {
   return null;
 }
+
+/* =========================================================
+   PARSE STORED USER
+========================================================= */
 
 function parseStoredUser(
   value: string | null
@@ -151,6 +197,10 @@ function parseStoredUser(
   }
 }
 
+/* =========================================================
+   SIDEBAR
+========================================================= */
+
 export default function Sidebar({
   mobile = false,
   onClose,
@@ -171,22 +221,38 @@ export default function Sidebar({
   const normalizedRole =
     storedUser?.role?.trim().toLowerCase() ?? "";
 
+  /* =======================================================
+     FILTER NAVIGATION BY ROLE
+  ======================================================= */
+
   const visibleNavItems = useMemo(() => {
     return navItems.filter((item) => {
       if (!item.allowedRoles) {
         return true;
       }
 
-      return item.allowedRoles.includes(normalizedRole);
+      return item.allowedRoles.includes(
+        normalizedRole
+      );
     });
   }, [normalizedRole]);
 
-  function isRouteActive(href: string): boolean {
+  /* =======================================================
+     ROUTE ACTIVE CHECK
+  ======================================================= */
+
+  function isRouteActive(
+    href: string
+  ): boolean {
     return (
       pathname === href ||
       pathname.startsWith(`${href}/`)
     );
   }
+
+  /* =======================================================
+     CLOSE MOBILE SIDEBAR
+  ======================================================= */
 
   function closeMobileSidebar() {
     if (mobile) {
@@ -207,9 +273,13 @@ export default function Sidebar({
         ${mobile ? "" : "hidden lg:flex"}
       `}
     >
-      {/* Header */}
+      {/* ===================================================
+          HEADER
+      =================================================== */}
+
       <div className="border-b border-white/5 px-6 py-6">
         <div className="flex items-center justify-between">
+
           <Link
             href="/mission-control/dashboard"
             onClick={closeMobileSidebar}
@@ -242,30 +312,46 @@ export default function Sidebar({
               <X size={22} />
             </button>
           )}
+
         </div>
       </div>
 
-      {/* User information */}
+      {/* ===================================================
+          USER INFORMATION
+      =================================================== */}
+
       {storedUser && (
         <div className="border-b border-white/5 px-5 py-4">
+
           <p className="truncate text-sm font-semibold text-white">
-            {storedUser.fullName || "Alpha User"}
+            {storedUser.fullName ||
+              "Alpha User"}
           </p>
 
           <div className="mt-1 flex items-center gap-2">
+
             <span className="rounded-full border border-green-500/20 bg-green-500/10 px-2 py-0.5 text-[11px] font-semibold capitalize text-green-400">
-              {normalizedRole.replaceAll("_", " ") ||
-                "Unknown role"}
+              {normalizedRole.replaceAll(
+                "_",
+                " "
+              ) || "Unknown role"}
             </span>
+
           </div>
         </div>
       )}
 
-      {/* Navigation */}
+      {/* ===================================================
+          NAVIGATION
+      =================================================== */}
+
       <nav className="flex-1 space-y-2 overflow-y-auto px-4 py-6">
+
         {visibleNavItems.map((item) => {
           const Icon = item.icon;
-          const isActive = isRouteActive(item.href);
+
+          const isActive =
+            isRouteActive(item.href);
 
           return (
             <Link
@@ -273,7 +359,9 @@ export default function Sidebar({
               href={item.href}
               onClick={closeMobileSidebar}
               aria-current={
-                isActive ? "page" : undefined
+                isActive
+                  ? "page"
+                  : undefined
               }
               className={`
                 group
@@ -311,12 +399,19 @@ export default function Sidebar({
             </Link>
           );
         })}
+
       </nav>
 
-      {/* Footer */}
+      {/* ===================================================
+          FOOTER
+      =================================================== */}
+
       <div className="border-t border-white/5 p-4">
+
         <div className="rounded-2xl bg-white/5 p-4">
+
           <div className="flex items-center justify-between gap-3">
+
             <div>
               <p className="text-sm font-semibold text-white">
                 System Status
@@ -331,8 +426,11 @@ export default function Sidebar({
               className="h-3 w-3 shrink-0 animate-pulse rounded-full bg-green-400"
               aria-label="System operational"
             />
+
           </div>
+
         </div>
+
       </div>
     </aside>
   );
