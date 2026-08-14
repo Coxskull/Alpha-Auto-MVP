@@ -16,7 +16,6 @@ export interface CommissionPolicy {
   effectiveTo: string | null;
   isActive: boolean;
   notes?: string | null;
-
   tiers: CommissionTier[];
 }
 
@@ -34,12 +33,8 @@ export interface CommissionCalculationResult {
   policyId: string;
   policyVersion: number;
   currency: string;
-
   partsSubtotal: number;
-
   totalCommission: number;
-
   effectiveCommissionRate: number;
-
   lines: CommissionCalculationLine[];
 }
