@@ -82,3 +82,122 @@ export type LoginResponse = {
   token: string;
   user: AuthenticatedUser;
 };
+
+export type EntrepreneurEarningStatus =
+  | "PENDING"
+  | "APPROVED"
+  | "HELD"
+  | "ADJUSTED"
+  | "PAID"
+  | "CANCELED"
+  | "REVERSED";
+
+export interface EntrepreneurDashboard {
+  directRecruits: number;
+  activeProviders: number;
+  qualifyingTransactions: number;
+
+  eligibleNetPlatformRevenue: number;
+
+  currentRate: number;
+
+  pendingEarnings: number;
+  approvedEarnings: number;
+  paidEarnings: number;
+
+  currency: string;
+
+  nextPayoutDate?: string | null;
+
+  referralCode?: string | null;
+  referralLink?: string | null;
+}
+
+export interface EntrepreneurReferral {
+  id: string;
+
+  entrepreneurUserId: string;
+  recruitedUserId: string;
+
+  referralCode?: string | null;
+
+  providerName?: string | null;
+  providerRole?: string | null;
+
+  referralDate?: string | null;
+  providerActivationDate?: string | null;
+
+  referralStatus?: string | null;
+
+  isDirectReferral: boolean;
+
+  endedAt?: string | null;
+}
+
+export interface EntrepreneurEarning {
+  id: string;
+
+  entrepreneurUserId: string;
+  recruiterId: string;
+
+  recruitedProviderId: string;
+
+  providerRole: string;
+
+  orderId: string;
+  transactionId: string;
+  paymentId: string;
+
+  transactionDate: string;
+
+  alphaGrossPlatformCommission: number;
+
+  directTransactionCosts: number;
+
+  eligibleNetPlatformRevenue: number;
+
+  entrepreneurPercentage: number;
+
+  entrepreneurEarningsAmount: number;
+
+  currency: string;
+
+  earningStatus: EntrepreneurEarningStatus;
+
+  refundAdjustment: number;
+
+  chargebackAdjustment: number;
+
+  payoutBatchId?: string | null;
+
+  payoutDate?: string | null;
+
+  payoutReference?: string | null;
+
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface EntrepreneurProgram {
+  programEnabled: boolean;
+
+  defaultCommissionRate: number;
+
+  minimumPayoutThreshold: number;
+
+  payoutFrequency: string;
+
+  qualifyingProviderRoles: string[];
+
+  qualifyingTransactionTypes: string[];
+
+  holdingPeriodDays: number;
+
+  maximumReferralLevel: number;
+
+  programStartDate?: string | null;
+
+  programEndDate?: string | null;
+
+  currency?: string | null;
+}

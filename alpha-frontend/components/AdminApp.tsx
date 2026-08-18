@@ -84,8 +84,8 @@ const navigation = [
   },
 
   {
-    label: "Referral Network",
-    href: "/mission-control/referrals",
+    label: "Entrepreneur Network",
+    href: "/mission-control/entrepreneur",
     icon: Network,
   },
 

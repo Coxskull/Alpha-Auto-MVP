@@ -9,6 +9,11 @@ export default function EntrepreneurLayout({
     <RoleGuard
       allowedRoles={[
         "community_builder",
+        "driver",
+        "mechanic",
+        "supplier",
+        "provider",
+        "customer",
         "admin",
         "dispatcher",
       ]}
