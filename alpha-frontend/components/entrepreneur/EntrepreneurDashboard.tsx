@@ -1,19 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
-  Users,
-  UserCheck,
-  ShoppingBag,
-  DollarSign,
-  Copy,
   Check,
-  Share2,
+  Copy,
+  DollarSign,
   RefreshCw,
+  Share2,
+  ShoppingBag,
+  UserCheck,
+  Users,
 } from "lucide-react";
 
 import RoleGuard from "@/components/auth/RoleGuard";
-
 import {
   getEntrepreneurDashboard,
 } from "@/services/entrepreneurService";
@@ -25,131 +24,228 @@ import type {
 function formatMoney(
   value: number,
   currency: string
-) {
+): string {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
-    currency,
+    currency: currency || "USD",
     maximumFractionDigits: 2,
-  }).format(value);
+  }).format(value ?? 0);
 }
 
-function formatPercentage(value: number) {
-  return `${(value * 100).toFixed(2)}%`;
+function formatPercentage(value: number): string {
+  /*
+   * Backend normally returns 0.05 for 5%.
+   */
+  return `${((value ?? 0) * 100).toFixed(2)}%`;
 }
 
 export default function EntrepreneurDashboard() {
   const [dashboard, setDashboard] =
     useState<EntrepreneurDashboardType | null>(null);
 
-  const [loading, setLoading] =
-    useState(true);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const [error, setError] =
-    useState("");
+  const [copiedCode, setCopiedCode] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
 
-  const [copied, setCopied] =
-    useState(false);
+  /*
+   * Load dashboard data.
+   *
+   * showLoading=true is used for the initial load.
+   * Subsequent refreshes don't replace the dashboard
+   * with a loading screen.
+   */
+  const loadDashboard = useCallback(
+  async (showRefreshing = true) => {
+    try {
+      if (showRefreshing) {
+        setRefreshing(true);
+      }
 
-  async function loadDashboard() {
-  try {
-    setLoading(true);
-    setError("");
+      setError(null);
 
-    const result = await getEntrepreneurDashboard();
+      const data = await getEntrepreneurDashboard();
 
-    setDashboard(result);
-  } catch (error) {
-    console.error(
-      "Failed to load entrepreneur dashboard",
-      error
-    );
+      setDashboard(data);
+    } catch (err) {
+      console.error(
+        "Failed to load entrepreneur dashboard:",
+        err
+      );
 
-    setError(
-      "Unable to load Entrepreneur Network dashboard."
-    );
-  } finally {
-    setLoading(false);
-  }
-}
+      setError(
+        "Unable to load your Entrepreneur Network dashboard."
+      );
+    } finally {
+      if (showRefreshing) {
+        setRefreshing(false);
+      }
 
-useEffect(() => {
-    let cancelled = false;
-
-    async function fetchDashboard() {
-        try {
-            setLoading(true);
-            setError("");
-
-            const result =
-                await getEntrepreneurDashboard();
-
-            if (cancelled) {
-                return;
-            }
-
-            setDashboard(result);
-        } catch (error) {
-            if (cancelled) {
-                return;
-            }
-
-            console.error(
-                "Failed to load entrepreneur dashboard",
-                error
-            );
-
-            setError(
-                "Unable to load Entrepreneur Network dashboard."
-            );
-        } finally {
-            if (!cancelled) {
-                setLoading(false);
-            }
-        }
+      setLoading(false);
     }
+  },
+  []
+);
 
-    void fetchDashboard();
+  /*
+   * Initial dashboard load.
+   */
+  useEffect(() => {
+  let cancelled = false;
+
+  const loadInitialDashboard = async () => {
+    try {
+      const data = await getEntrepreneurDashboard();
+
+      if (cancelled) {
+        return;
+      }
+
+      setDashboard(data);
+      setError(null);
+      setLoading(false);
+    } catch (err) {
+      if (cancelled) {
+        return;
+      }
+
+      console.error(
+        "Failed to load entrepreneur dashboard:",
+        err
+      );
+
+      setError(
+        "Unable to load your Entrepreneur Network dashboard."
+      );
+
+      setLoading(false);
+    }
+  };
+
+  void loadInitialDashboard();
+
+  return () => {
+    cancelled = true;
+  };
+}, []);
+  /*
+   * Near-real-time refresh.
+   *
+   * Refreshes every 10 seconds while the browser tab
+   * is visible.
+   */
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      if (document.visibilityState === "visible") {
+        void loadDashboard(false);
+      }
+    }, 10_000);
 
     return () => {
-        cancelled = true;
+      window.clearInterval(intervalId);
     };
-}, []);
+  }, [loadDashboard]);
 
-  async function copyReferralLink() {
+  /*
+   * Copy referral code.
+   */
+  const handleCopyCode = async () => {
+    if (!dashboard?.referralCode) {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(
+        dashboard.referralCode
+      );
+
+      setCopiedCode(true);
+
+      window.setTimeout(() => {
+        setCopiedCode(false);
+      }, 1500);
+    } catch (err) {
+      console.error(
+        "Failed to copy referral code:",
+        err
+      );
+    }
+  };
+
+  /*
+   * Copy referral link.
+   */
+  const handleCopyLink = async () => {
     if (!dashboard?.referralLink) {
       return;
     }
 
-    await navigator.clipboard.writeText(
-      dashboard.referralLink
-    );
+    try {
+      await navigator.clipboard.writeText(
+        dashboard.referralLink
+      );
 
-    setCopied(true);
+      setCopiedLink(true);
 
-    setTimeout(() => {
-      setCopied(false);
-    }, 1500);
-  }
+      window.setTimeout(() => {
+        setCopiedLink(false);
+      }, 1500);
+    } catch (err) {
+      console.error(
+        "Failed to copy referral link:",
+        err
+      );
+    }
+  };
 
-  async function shareReferralLink() {
+  /*
+   * Native share.
+   *
+   * If the browser doesn't support navigator.share,
+   * fall back to copying the referral link.
+   */
+  const handleShare = async () => {
     if (!dashboard?.referralLink) {
       return;
     }
 
     if (navigator.share) {
-      await navigator.share({
-        title: "Alpha Entrepreneur Network",
-        text:
-          "Join my Alpha Entrepreneur Network.",
-        url: dashboard.referralLink,
-      });
+      try {
+        await navigator.share({
+          title: "Alpha Entrepreneur Network",
+          text:
+            "Join the Alpha Entrepreneur Network using my referral link.",
+          url: dashboard.referralLink,
+        });
+      } catch (err) {
+        /*
+         * AbortError normally means the user cancelled
+         * the share dialog. We don't show an error.
+         */
+        if (
+          err instanceof DOMException &&
+          err.name === "AbortError"
+        ) {
+          return;
+        }
+
+        console.error(
+          "Failed to share referral link:",
+          err
+        );
+      }
 
       return;
     }
 
-    await copyReferralLink();
-  }
+    await handleCopyLink();
+  };
 
+  /*
+   * Initial loading state.
+   */
   if (loading) {
     return (
       <RoleGuard
@@ -160,13 +256,27 @@ useEffect(() => {
         ]}
       >
         <main className="min-h-screen bg-slate-50 p-6">
-          Loading Entrepreneur Network...
+          <div className="mx-auto max-w-7xl">
+            <div className="rounded-2xl border bg-white p-8 text-center shadow-sm">
+              <RefreshCw
+                className="mx-auto animate-spin text-purple-600"
+                size={28}
+              />
+
+              <p className="mt-4 font-semibold text-slate-700">
+                Loading Entrepreneur Network...
+              </p>
+            </div>
+          </div>
         </main>
       </RoleGuard>
     );
   }
 
-  if (error || !dashboard) {
+  /*
+   * Error state.
+   */
+  if (error && !dashboard) {
     return (
       <RoleGuard
         allowedRoles={[
@@ -176,92 +286,237 @@ useEffect(() => {
         ]}
       >
         <main className="min-h-screen bg-slate-50 p-6">
-          <div className="rounded-2xl border border-red-200 bg-red-50 p-6">
-            <p className="font-semibold text-red-700">
-              {error}
-            </p>
+          <div className="mx-auto max-w-7xl">
+            <div className="rounded-2xl border border-red-200 bg-red-50 p-8 text-center">
+              <h1 className="text-xl font-bold text-red-700">
+                Entrepreneur Dashboard
+              </h1>
 
-            <button
-              onClick={loadDashboard}
-              className="mt-4 rounded-lg bg-red-600 px-4 py-2 text-white"
-            >
-              Try Again
-            </button>
+              <p className="mt-2 text-red-600">
+                {error}
+              </p>
+
+              <button
+                type="button"
+                onClick={() => void loadDashboard(true)}
+                className="mt-5 rounded-xl bg-red-600 px-5 py-3 font-semibold text-white transition hover:bg-red-700"
+              >
+                Try Again
+              </button>
+            </div>
           </div>
         </main>
       </RoleGuard>
     );
   }
 
+  if (!dashboard) {
+    return null;
+  }
+
   return (
     <RoleGuard
-  allowedRoles={[
-    "community_builder",
-    "driver",
-    "mechanic",
-    "supplier",
-    "provider",
-    "customer",
-    "admin",
-    "dispatcher",
-  ]}
->
+      allowedRoles={[
+        "community_builder",
+        "admin",
+        "dispatcher",
+      ]}
+    >
       <main className="min-h-screen bg-slate-50 p-4 sm:p-6 lg:p-8">
         <div className="mx-auto max-w-7xl space-y-6">
 
-          {/* HEADER */}
+          {/* =====================================================
+              HEADER
+          ====================================================== */}
+          <section className="overflow-hidden rounded-3xl bg-gradient-to-br from-purple-950 via-purple-800 to-purple-600 text-white shadow-xl">
 
-          <section className="rounded-3xl bg-gradient-to-br from-purple-900 via-purple-700 to-purple-500 p-6 text-white shadow-xl">
+            <div className="p-6 sm:p-8">
 
-            <p className="text-sm font-bold uppercase tracking-wider text-purple-200">
-              Alpha Entrepreneur Network
-            </p>
+              <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
 
-            <h1 className="mt-3 text-3xl font-black">
-              Build Your Network
-            </h1>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-purple-100">
+                      Alpha Entrepreneur Network
+                    </span>
 
-            <p className="mt-3 max-w-2xl text-purple-100">
-              Refer eligible automotive partners and earn
-              rewards from qualifying completed transactions.
-            </p>
+                    {/* LIVE INDICATOR */}
+                    <span className="flex items-center gap-2 rounded-full bg-green-500/20 px-3 py-1 text-xs font-bold text-green-200">
+                      <span className="relative flex h-2.5 w-2.5">
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-300 opacity-75" />
+                        <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-green-400" />
+                      </span>
 
-            {dashboard.referralLink && (
-              <div className="mt-6 flex flex-col gap-3 rounded-2xl bg-white p-3 text-slate-900 sm:flex-row">
+                      Live
+                    </span>
+                  </div>
 
-                <input
-                  readOnly
-                  value={dashboard.referralLink}
-                  className="min-w-0 flex-1 rounded-xl bg-slate-100 px-4 py-3 text-sm"
-                />
+                  <h1 className="mt-4 text-3xl font-black sm:text-4xl">
+                    Build Your Network
+                  </h1>
 
+                  <p className="mt-3 max-w-2xl text-sm leading-6 text-purple-100 sm:text-base">
+                    Refer eligible automotive partners and earn
+                    rewards from qualifying completed transactions.
+                  </p>
+                </div>
+
+                {/* REFRESH */}
                 <button
-                  onClick={copyReferralLink}
-                  className="flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 py-3 font-bold text-white"
+                  type="button"
+                  onClick={() => void loadDashboard(false)}
+                  disabled={refreshing}
+                  className="flex items-center justify-center gap-2 rounded-xl bg-white/10 px-4 py-3 text-sm font-bold transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {copied ? (
-                    <Check size={18} />
-                  ) : (
-                    <Copy size={18} />
-                  )}
+                  <RefreshCw
+                    size={17}
+                    className={
+                      refreshing
+                        ? "animate-spin"
+                        : ""
+                    }
+                  />
 
-                  {copied ? "Copied" : "Copy"}
-                </button>
-
-                <button
-                  onClick={shareReferralLink}
-                  className="flex items-center justify-center gap-2 rounded-xl bg-purple-600 px-5 py-3 font-bold text-white"
-                >
-                  <Share2 size={18} />
-                  Share
+                  {refreshing
+                    ? "Refreshing..."
+                    : "Refresh"}
                 </button>
 
               </div>
-            )}
+
+              {/* =================================================
+                  REFERRAL CODE
+              ================================================== */}
+              <div className="mt-8 rounded-2xl bg-white p-5 text-slate-900 shadow-lg sm:p-6">
+
+                <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
+                      Your Referral Code
+                    </p>
+
+                    {dashboard.referralCode ? (
+                      <>
+                        <p className="mt-2 break-all text-3xl font-black tracking-[0.2em] text-purple-700 sm:text-4xl">
+                          {dashboard.referralCode}
+                        </p>
+
+                        <p className="mt-2 text-sm text-slate-500">
+                          Share this code with people you refer
+                          to Alpha.
+                        </p>
+                      </>
+                    ) : (
+                      <p className="mt-2 font-semibold text-red-600">
+                        No referral code is available.
+                      </p>
+                    )}
+                  </div>
+
+                  {dashboard.referralCode && (
+                    <button
+                      type="button"
+                      onClick={() => void handleCopyCode()}
+                      className="flex shrink-0 items-center justify-center gap-2 rounded-xl bg-purple-700 px-5 py-3 font-bold text-white transition hover:bg-purple-800"
+                    >
+                      {copiedCode ? (
+                        <Check size={18} />
+                      ) : (
+                        <Copy size={18} />
+                      )}
+
+                      {copiedCode
+                        ? "Copied"
+                        : "Copy Code"}
+                    </button>
+                  )}
+
+                </div>
+              </div>
+
+              {/* =================================================
+                  REFERRAL LINK
+              ================================================== */}
+              {dashboard.referralLink && (
+                <div className="mt-4 rounded-2xl bg-white p-3 text-slate-900 shadow-lg">
+
+                  <div className="flex flex-col gap-3 lg:flex-row">
+
+                    <input
+                      type="text"
+                      readOnly
+                      value={dashboard.referralLink}
+                      className="min-w-0 flex-1 rounded-xl bg-slate-100 px-4 py-3 text-sm text-slate-700 outline-none"
+                      aria-label="Referral link"
+                    />
+
+                    <div className="flex flex-col gap-3 sm:flex-row">
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          void handleCopyLink()
+                        }
+                        className="flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 py-3 font-bold text-white transition hover:bg-slate-800"
+                      >
+                        {copiedLink ? (
+                          <Check size={18} />
+                        ) : (
+                          <Copy size={18} />
+                        )}
+
+                        {copiedLink
+                          ? "Copied"
+                          : "Copy Link"}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          void handleShare()
+                        }
+                        className="flex items-center justify-center gap-2 rounded-xl bg-purple-600 px-5 py-3 font-bold text-white transition hover:bg-purple-700"
+                      >
+                        <Share2 size={18} />
+                        Share
+                      </button>
+
+                    </div>
+                  </div>
+                </div>
+              )}
+
+            </div>
+
+            {/* AUTOMATIC REFRESH NOTICE */}
+            <div className="border-t border-white/10 bg-black/10 px-6 py-3 text-xs text-purple-100 sm:px-8">
+              Dashboard automatically refreshes every 10 seconds
+              while this page is active.
+            </div>
+
           </section>
 
-          {/* SUMMARY */}
+          {/* =====================================================
+              ERROR BANNER
+          ====================================================== */}
+          {error && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              {error}
 
+              <button
+                type="button"
+                onClick={() => void loadDashboard(false)}
+                className="ml-2 font-bold underline"
+              >
+                Retry
+              </button>
+            </div>
+          )}
+
+          {/* =====================================================
+              SUMMARY CARDS
+          ====================================================== */}
           <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
 
             <SummaryCard
@@ -293,92 +548,96 @@ useEffect(() => {
 
           </section>
 
-          {/* COMMISSION */}
+          {/* =====================================================
+              EARNINGS
+          ====================================================== */}
+          <section>
+            <div className="mb-4">
+              <h2 className="text-xl font-black text-slate-900">
+                Earnings
+              </h2>
 
-          <section className="grid gap-4 sm:grid-cols-3">
+              <p className="text-sm text-slate-500">
+                Your current Entrepreneur Network earnings.
+              </p>
+            </div>
 
-            <MoneyCard
-              title="Pending Earnings"
-              amount={dashboard.pendingEarnings}
-              currency={dashboard.currency}
-            />
+            <div className="grid gap-4 md:grid-cols-3">
 
-            <MoneyCard
-              title="Approved Earnings"
-              amount={dashboard.approvedEarnings}
-              currency={dashboard.currency}
-            />
+              <EarningsCard
+                title="Pending Earnings"
+                amount={dashboard.pendingEarnings}
+                currency={dashboard.currency}
+              />
 
-            <MoneyCard
-              title="Paid Earnings"
-              amount={dashboard.paidEarnings}
-              currency={dashboard.currency}
-            />
+              <EarningsCard
+                title="Approved Earnings"
+                amount={dashboard.approvedEarnings}
+                currency={dashboard.currency}
+              />
 
+              <EarningsCard
+                title="Paid Earnings"
+                amount={dashboard.paidEarnings}
+                currency={dashboard.currency}
+              />
+
+            </div>
           </section>
 
-          {/* PROGRAM */}
+          {/* =====================================================
+              PROGRAM INFORMATION
+          ====================================================== */}
+          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
 
-          <section className="rounded-2xl border bg-white p-6 shadow-sm">
-
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 
               <div>
-                <h2 className="text-xl font-bold">
+                <h2 className="text-xl font-black text-slate-900">
                   Entrepreneur Program
                 </h2>
 
-                <p className="text-sm text-slate-500">
+                <p className="mt-1 text-sm text-slate-500">
                   Current reward configuration
                 </p>
               </div>
 
-              <button
-                onClick={loadDashboard}
-                className="rounded-lg border p-2 hover:bg-slate-50"
-              >
-                <RefreshCw size={18} />
-              </button>
-
-            </div>
-
-            <div className="mt-6 grid gap-4 sm:grid-cols-3">
-
-              <div>
-                <p className="text-sm text-slate-500">
+              <div className="rounded-xl bg-purple-50 px-4 py-3 text-center">
+                <p className="text-xs font-bold uppercase tracking-wider text-purple-500">
                   Current Rate
                 </p>
 
-                <p className="mt-1 text-2xl font-black">
+                <p className="mt-1 text-2xl font-black text-purple-700">
                   {formatPercentage(
                     dashboard.currentRate
                   )}
                 </p>
               </div>
 
-              <div>
-                <p className="text-sm text-slate-500">
-                  Network Level
-                </p>
+            </div>
 
-                <p className="mt-1 text-2xl font-black">
-                  Level 1
-                </p>
-              </div>
+            <div className="mt-6 grid gap-4 border-t pt-6 sm:grid-cols-3">
 
-              <div>
-                <p className="text-sm text-slate-500">
-                  Next Payout
-                </p>
+              <InfoItem
+                label="Network Level"
+                value="Level 1"
+              />
 
-                <p className="mt-1 font-bold">
-                  {dashboard.nextPayoutDate
+              <InfoItem
+                label="Currency"
+                value={dashboard.currency}
+              />
+
+              <InfoItem
+                label="Next Payout"
+                value={
+                  dashboard.nextPayoutDate
                     ? new Date(
                         dashboard.nextPayoutDate
                       ).toLocaleDateString()
-                    : "Not scheduled"}
-                </p>
-              </div>
+                    : "Not scheduled"
+                }
+              />
 
             </div>
 
@@ -390,6 +649,10 @@ useEffect(() => {
   );
 }
 
+/* =============================================================
+   SUMMARY CARD
+============================================================= */
+
 function SummaryCard({
   label,
   value,
@@ -400,16 +663,16 @@ function SummaryCard({
   icon: React.ElementType;
 }) {
   return (
-    <div className="rounded-2xl border bg-white p-5 shadow-sm">
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md">
 
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4">
 
         <div>
           <p className="text-sm font-semibold text-slate-500">
             {label}
           </p>
 
-          <p className="mt-2 text-2xl font-black">
+          <p className="mt-2 text-2xl font-black text-slate-900">
             {value}
           </p>
         </div>
@@ -424,7 +687,11 @@ function SummaryCard({
   );
 }
 
-function MoneyCard({
+/* =============================================================
+   EARNINGS CARD
+============================================================= */
+
+function EarningsCard({
   title,
   amount,
   currency,
@@ -434,14 +701,40 @@ function MoneyCard({
   currency: string;
 }) {
   return (
-    <div className="rounded-2xl border bg-white p-5 shadow-sm">
+    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
 
       <p className="text-sm font-semibold text-slate-500">
         {title}
       </p>
 
-      <p className="mt-2 text-2xl font-black">
+      <p className="mt-3 text-3xl font-black text-slate-900">
         {formatMoney(amount, currency)}
+      </p>
+
+    </div>
+  );
+}
+
+/* =============================================================
+   INFO ITEM
+============================================================= */
+
+function InfoItem({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-xl bg-slate-50 p-4">
+
+      <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
+        {label}
+      </p>
+
+      <p className="mt-2 font-bold text-slate-900">
+        {value}
       </p>
 
     </div>

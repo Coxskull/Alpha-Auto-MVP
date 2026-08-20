@@ -7,13 +7,16 @@ import type {
   EntrepreneurProgram,
 } from "../types/entrepreneur";
 
+
+
 export async function getEntrepreneurDashboard(): Promise<EntrepreneurDashboard> {
-  const response = await api.get<EntrepreneurDashboard>(
+  const response = await api.get(
     "/api/entrepreneur/dashboard"
   );
 
   return response.data;
 }
+
 
 export async function getEntrepreneurReferrals(): Promise<
   EntrepreneurReferral[]
@@ -42,3 +45,4 @@ export async function getEntrepreneurProgram(): Promise<EntrepreneurProgram> {
 
   return response.data;
 }
+

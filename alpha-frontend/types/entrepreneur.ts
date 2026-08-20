@@ -93,24 +93,24 @@ export type EntrepreneurEarningStatus =
   | "REVERSED";
 
 export interface EntrepreneurDashboard {
+  referralCode: string;
+  referralLink: string;
+
   directRecruits: number;
   activeProviders: number;
   qualifyingTransactions: number;
 
   eligibleNetPlatformRevenue: number;
 
-  currentRate: number;
-
   pendingEarnings: number;
   approvedEarnings: number;
   paidEarnings: number;
 
+  currentRate: number;
+
   currency: string;
 
   nextPayoutDate?: string | null;
-
-  referralCode?: string | null;
-  referralLink?: string | null;
 }
 
 export interface EntrepreneurReferral {

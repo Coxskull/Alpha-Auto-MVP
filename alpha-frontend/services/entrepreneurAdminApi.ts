@@ -62,6 +62,27 @@ export interface EntrepreneurAdminSummary {
   adjustedEarnings: number;
 }
 
+export interface EntrepreneurDashboard {
+  referralCode: string;
+  referralLink: string;
+
+  directRecruits: number;
+  activeProviders: number;
+  qualifyingTransactions: number;
+
+  eligibleNetPlatformRevenue: number;
+
+  pendingEarnings: number;
+  approvedEarnings: number;
+  paidEarnings: number;
+
+  currentRate: number;
+
+  currency: string;
+
+  nextPayoutDate?: string | null;
+}
+
 export async function getEntrepreneurConfiguration(): Promise<EntrepreneurProgramConfiguration | null> {
   const response = await api.get(
     "/api/admin/entrepreneur/configuration"
@@ -104,6 +125,14 @@ export async function getEntrepreneurAdminEarnings(): Promise<
 > {
   const response = await api.get(
     "/api/admin/entrepreneur/earnings"
+  );
+
+  return response.data;
+}
+
+export async function getEntrepreneurDashboard(): Promise<EntrepreneurDashboard> {
+  const response = await api.get(
+    "/api/entrepreneur/dashboard"
   );
 
   return response.data;
