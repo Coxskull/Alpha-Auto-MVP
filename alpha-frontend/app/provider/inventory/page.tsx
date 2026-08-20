@@ -188,12 +188,28 @@ export default function ProviderInventoryPage() {
 
       resetForm();
       await loadProducts(supplierId);
-    } catch (error) {
-      console.error("Failed to save product:", error);
-      alert("Failed to save product.");
-    } finally {
-      setSaving(false);
-    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+  console.error("Failed to save product:", error);
+
+  const status = error?.response?.status;
+  const data = error?.response?.data;
+
+  console.error("Status:", status);
+  console.error("Response:", data);
+
+  const message =
+    data?.message ||
+    data?.title ||
+    data?.detail ||
+    (typeof data === "string" ? data : null) ||
+    error?.message ||
+    "Failed to save product.";
+
+  alert(`Failed to save product${status ? ` (${status})` : ""}:\n${message}`);
+} finally {
+  setSaving(false);
+}
   };
 
  const deleteProduct = async (product: Product) => {
