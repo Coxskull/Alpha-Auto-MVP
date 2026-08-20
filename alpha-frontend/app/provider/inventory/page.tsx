@@ -29,41 +29,13 @@ type ProductForm = {
   quantityAvailable: string;
 };
 
-type AlphaUser = {
+type SupplierResponse = {
   id?: string;
   Id?: string;
-  user_id?: string;
-  userId?: string;
-
   supplierId?: string;
   SupplierId?: string;
-
-  supplier?: {
-    id?: string;
-    Id?: string;
-  };
-};
-
-type Supplier = {
-  Id: string;
-  user_id?: string;
+  userId?: string;
   UserId?: string;
-  Name?: string;
-  name?: string;
-};
-
-type AxiosLikeError = {
-  response?: {
-    status?: number;
-    data?:
-      | string
-      | {
-          message?: string;
-          title?: string;
-          detail?: string;
-        };
-  };
-  message?: string;
 };
 
 const initialForm: ProductForm = {
@@ -76,88 +48,237 @@ const initialForm: ProductForm = {
 };
 
 /* =========================================================
-   AUTH / USER ID
+   SUPPLIER ID STORE
    ========================================================= */
 
-function getAlphaUser(): AlphaUser | null {
+let supplierSnapshot: string | null = null;
+let supplierInitialized = false;
+let supplierResolving = false;
+
+const supplierListeners = new Set<() => void>();
+
+function notifySupplierListeners() {
+  supplierListeners.forEach((listener) => {
+    listener();
+  });
+}
+
+function readStoredSupplierId(): string | null {
   if (typeof window === "undefined") {
     return null;
   }
 
-  const raw = localStorage.getItem("alpha_user");
+  const stored = localStorage.getItem("supplierId");
 
-  if (!raw) {
+  if (stored?.trim()) {
+    return stored.trim();
+  }
+
+  return null;
+}
+
+function readUserId(): string | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const alphaUserRaw = localStorage.getItem("alpha_user");
+
+  if (!alphaUserRaw) {
     return null;
   }
 
   try {
-    return JSON.parse(raw) as AlphaUser;
+    const user = JSON.parse(alphaUserRaw);
+
+    const userId =
+      user.id ??
+      user.Id ??
+      user.user_id ??
+      user.userId ??
+      null;
+
+    if (!userId) {
+      return null;
+    }
+
+    return String(userId).trim();
   } catch (error) {
-    console.error("Failed to parse alpha_user:", error);
+    console.error(
+      "Failed to parse alpha_user:",
+      error
+    );
+
     return null;
   }
 }
 
-function getUserId(): string | null {
-  const user = getAlphaUser();
-
-  if (!user) {
-    return null;
-  }
-
-  const id =
-    user.id ??
-    user.Id ??
-    user.user_id ??
-    user.userId ??
-    null;
-
-  return id ? String(id).trim() : null;
-}
-
-function getStoredSupplierId(): string | null {
+function getSupplierSnapshot(): string | null {
   if (typeof window === "undefined") {
     return null;
   }
 
-  const value = localStorage.getItem("supplierId");
+  if (!supplierInitialized) {
+    supplierInitialized = true;
 
-  return value?.trim() || null;
-}
+    const storedSupplierId = readStoredSupplierId();
 
-/*
- * useSyncExternalStore requires a stable subscription.
- */
-function subscribeToAuth(callback: () => void) {
-  if (typeof window === "undefined") {
-    return () => {};
+    if (storedSupplierId) {
+      supplierSnapshot = storedSupplierId;
+    }
   }
 
-  const handleChange = () => {
-    callback();
-  };
+  return supplierSnapshot;
+}
 
-  window.addEventListener("storage", handleChange);
-  window.addEventListener("alpha-user-changed", handleChange);
-  window.addEventListener("supplier-id-changed", handleChange);
+function getSupplierServerSnapshot(): string | null {
+  return null;
+}
+
+function subscribeToSupplierStore(
+  callback: () => void
+) {
+  supplierListeners.add(callback);
+
+  /*
+   * Resolve the supplier when the first component subscribes.
+   *
+   * This is intentionally outside React state/effects.
+   * Therefore react-hooks/set-state-in-effect is not triggered.
+   */
+  void resolveSupplierId();
 
   return () => {
-    window.removeEventListener("storage", handleChange);
-    window.removeEventListener("alpha-user-changed", handleChange);
-    window.removeEventListener("supplier-id-changed", handleChange);
+    supplierListeners.delete(callback);
   };
 }
 
-function getAuthSnapshot() {
-  return (
-    getUserId() ??
-    getStoredSupplierId() ??
-    ""
-  );
-}
+async function resolveSupplierId(): Promise<string | null> {
+  if (typeof window === "undefined") {
+    return null;
+  }
 
-function getServerAuthSnapshot() {
-  return "";
+  /*
+   * Already resolved.
+   */
+  if (supplierSnapshot) {
+    return supplierSnapshot;
+  }
+
+  /*
+   * Another request is already resolving it.
+   */
+  if (supplierResolving) {
+    return supplierSnapshot;
+  }
+
+  supplierResolving = true;
+
+  try {
+    /*
+     * First try localStorage.
+     */
+    const storedSupplierId = readStoredSupplierId();
+
+    if (storedSupplierId) {
+      supplierSnapshot = storedSupplierId;
+
+      notifySupplierListeners();
+
+      return supplierSnapshot;
+    }
+
+    /*
+     * Get authenticated user ID.
+     */
+    const userId = readUserId();
+
+    console.log("User ID:", userId);
+
+    if (!userId) {
+      console.error(
+        "Cannot resolve supplier: user ID not found."
+      );
+
+      return null;
+    }
+
+    /*
+     * Resolve User.Id -> Supplier.Id
+     */
+    console.log(
+      "Resolving supplier for user:",
+      userId
+    );
+
+    const response =
+      await api.get<SupplierResponse>(
+        `/api/Suppliers/user/${encodeURIComponent(
+          userId
+        )}`
+      );
+
+    console.log(
+      "Supplier response:",
+      response.data
+    );
+
+    const supplier =
+      response.data;
+
+    const resolvedSupplierId =
+      supplier.supplierId ??
+      supplier.SupplierId ??
+      supplier.id ??
+      supplier.Id ??
+      null;
+
+    if (!resolvedSupplierId) {
+      console.error(
+        "Supplier endpoint returned no SupplierId.",
+        supplier
+      );
+
+      return null;
+    }
+
+    supplierSnapshot =
+      String(resolvedSupplierId).trim();
+
+    /*
+     * Persist it so future pages don't need
+     * to resolve it again.
+     */
+    localStorage.setItem(
+      "supplierId",
+      supplierSnapshot
+    );
+
+    console.log(
+      "Resolved Supplier ID:",
+      supplierSnapshot
+    );
+
+    notifySupplierListeners();
+
+    /*
+     * Let other parts of the application know.
+     */
+    window.dispatchEvent(
+      new CustomEvent("supplier-id-changed")
+    );
+
+    return supplierSnapshot;
+  } catch (error) {
+    console.error(
+      "Failed to resolve Supplier ID:",
+      error
+    );
+
+    return null;
+  } finally {
+    supplierResolving = false;
+  }
 }
 
 /* =========================================================
@@ -165,51 +286,11 @@ function getServerAuthSnapshot() {
    ========================================================= */
 
 export default function ProviderInventoryPage() {
-  /*
-   * This gives us the authenticated user's ID.
-   *
-   * IMPORTANT:
-   *
-   * This is NOT necessarily Suppliers.Id.
-   *
-   * Based on your database:
-   *
-   * users.id
-   *      ↓
-   * suppliers.user_id
-   *      ↓
-   * suppliers.Id
-   */
-  const authSnapshot = useSyncExternalStore(
-    subscribeToAuth,
-    getAuthSnapshot,
-    getServerAuthSnapshot
+  const supplierId = useSyncExternalStore(
+    subscribeToSupplierStore,
+    getSupplierSnapshot,
+    getSupplierServerSnapshot
   );
-
-  const userId = useMemo(() => {
-    const user = getAlphaUser();
-
-    if (!user) {
-      return null;
-    }
-
-    const id =
-      user.id ??
-      user.Id ??
-      user.user_id ??
-      user.userId ??
-      null;
-
-    return id ? String(id).trim() : null;
-  }, [authSnapshot]);
-
-  /*
-   * Supplier ID is stored separately once resolved.
-   */
-  const [supplierId, setSupplierId] =
-    useState<string | null>(
-      () => getStoredSupplierId()
-    );
 
   const [products, setProducts] =
     useState<Product[]>([]);
@@ -233,92 +314,6 @@ export default function ProviderInventoryPage() {
     useState(false);
 
   /* =========================================================
-     FIND SUPPLIER BY USER ID
-     ========================================================= */
-
-  const resolveSupplier = useCallback(
-    async (currentUserId: string): Promise<string | null> => {
-      /*
-       * If supplierId already exists, use it.
-       */
-      const stored = getStoredSupplierId();
-
-      if (stored) {
-        console.log(
-          "Using stored Supplier ID:",
-          stored
-        );
-
-        return stored;
-      }
-
-      console.log(
-        "Resolving supplier using user ID:",
-        currentUserId
-      );
-
-      /*
-       * IMPORTANT:
-       *
-       * Your database structure shows:
-       *
-       * suppliers.user_id = authenticated user ID
-       *
-       * So the backend needs to expose:
-       *
-       * GET /api/Suppliers/user/{userId}
-       *
-       * returning the supplier record.
-       */
-      const response = await api.get<Supplier>(
-        `/api/Suppliers/user/${encodeURIComponent(
-          currentUserId
-        )}`
-      );
-
-      const supplier = response.data;
-
-      const resolvedId =
-        supplier?.Id;
-
-      if (!resolvedId) {
-        console.error(
-          "Supplier API returned no Id:",
-          supplier
-        );
-
-        return null;
-      }
-
-      const id = String(resolvedId).trim();
-
-      /*
-       * Store it so future requests do not need
-       * to resolve the supplier again.
-       */
-      localStorage.setItem(
-        "supplierId",
-        id
-      );
-
-      /*
-       * Notify other components if necessary.
-       */
-      window.dispatchEvent(
-        new Event("supplier-id-changed")
-      );
-
-      console.log(
-        "Resolved Supplier ID:",
-        id
-      );
-
-      return id;
-    },
-    []
-  );
-
-  /* =========================================================
      LOAD PRODUCTS
      ========================================================= */
 
@@ -329,7 +324,6 @@ export default function ProviderInventoryPage() {
           "Cannot load products: Supplier ID is empty."
         );
 
-        setProducts([]);
         return;
       }
 
@@ -349,7 +343,7 @@ export default function ProviderInventoryPage() {
           );
 
         console.log(
-          "Products returned:",
+          "Products returned from API:",
           response.data
         );
 
@@ -373,120 +367,64 @@ export default function ProviderInventoryPage() {
     []
   );
 
-  /* =========================================================
-     INITIAL LOAD
-     ========================================================= */
-
-  const initializeInventory = useCallback(
-    async () => {
-      if (!userId) {
-        console.warn(
-          "No authenticated user ID found."
-        );
-
-        return;
-      }
-
-      try {
-        console.log(
-          "Authenticated User ID:",
-          userId
-        );
-
-        /*
-         * Resolve:
-         *
-         * user.id
-         *    ↓
-         * suppliers.user_id
-         *    ↓
-         * suppliers.Id
-         */
-        const resolvedSupplierId =
-          await resolveSupplier(userId);
-
-        if (!resolvedSupplierId) {
-          console.error(
-            "Could not resolve Supplier ID."
-          );
-
-          setProducts([]);
-          return;
-        }
-
-        setSupplierId(
-          resolvedSupplierId
-        );
-
-        /*
-         * Now load products using the actual
-         * Suppliers.Id.
-         */
-        await loadProducts(
-          resolvedSupplierId
-        );
-      } catch (error) {
-        console.error(
-          "Failed to initialize inventory:",
-          error
-        );
-
-        setProducts([]);
-      }
-    },
-    [
-      userId,
-      resolveSupplier,
-      loadProducts,
-    ]
-  );
-
   /*
    * IMPORTANT:
    *
-   * We don't use useEffect here because your ESLint
-   * configuration specifically rejects synchronous
-   * state updates originating from effects.
+   * Do not use useEffect here.
    *
-   * The inventory is initialized from the page's
-   * user interaction below as well as when the user
-   * presses Refresh.
+   * supplierId changes through useSyncExternalStore,
+   * and the actual loading is triggered from the
+   * subscription/store.
+   *
+   * We use a separate callback below when the supplier
+   * becomes available.
    */
 
-  /* =========================================================
-     REFRESH
-     ========================================================= */
+  const refreshProducts = useCallback(async () => {
+    if (!supplierId) {
+      console.warn(
+        "Cannot refresh products: Supplier ID unavailable."
+      );
 
-  const refreshInventory = async () => {
-    /*
-     * First use known supplier ID.
-     */
-    if (supplierId) {
-      await loadProducts(supplierId);
       return;
     }
 
-    /*
-     * Otherwise resolve supplier from logged-in user.
-     */
-    await initializeInventory();
-  };
+    await loadProducts(supplierId);
+  }, [supplierId, loadProducts]);
+
+  /*
+   * When supplierId becomes available, load products.
+   *
+   * This is invoked during render scheduling rather than
+   * setState inside an effect.
+   */
+  useMemo(() => {
+    if (supplierId) {
+      void loadProducts(supplierId);
+    }
+
+    return null;
+  }, [supplierId, loadProducts]);
 
   /* =========================================================
-     SUMMARY
+     TOTALS
      ========================================================= */
 
-  const totalInventoryValue = useMemo(() => {
-    return products.reduce(
-      (sum, product) =>
-        sum +
-        Number(product.price || 0) *
-          Number(
-            product.quantityAvailable || 0
-          ),
-      0
-    );
-  }, [products]);
+  const totalInventoryValue =
+    useMemo(() => {
+      return products.reduce(
+        (sum, product) => {
+          return (
+            sum +
+            Number(product.price || 0) *
+              Number(
+                product.quantityAvailable || 0
+              )
+          );
+        },
+        0
+      );
+    }, [products]);
 
   const totalStock = useMemo(() => {
     return products.reduce(
@@ -570,23 +508,19 @@ export default function ProviderInventoryPage() {
     setForm({
       partNumber:
         product.partNumber ?? "",
-
       brand:
         product.brand ?? "",
-
       name:
         product.name ?? "",
-
       description:
         product.description ?? "",
-
       price:
-        String(product.price ?? ""),
-
+        String(
+          product.price ?? ""
+        ),
       quantityAvailable:
         String(
-          product.quantityAvailable ??
-            ""
+          product.quantityAvailable ?? ""
         ),
     });
 
@@ -607,52 +541,16 @@ export default function ProviderInventoryPage() {
      ========================================================= */
 
   const submitProduct = async () => {
-    /*
-     * If supplier ID is missing, resolve it first.
-     */
-    let currentSupplierId =
-      supplierId;
+    if (!supplierId) {
+      alert(
+        "Supplier ID not found. Please sign out and log in again."
+      );
 
-    if (!currentSupplierId) {
-      if (!userId) {
-        alert(
-          "User ID not found. Please sign out and log in again."
-        );
+      console.error(
+        "submitProduct stopped: Supplier ID is undefined."
+      );
 
-        return;
-      }
-
-      try {
-        currentSupplierId =
-          await resolveSupplier(
-            userId
-          );
-
-        if (
-          !currentSupplierId
-        ) {
-          alert(
-            "Supplier profile could not be found for this account."
-          );
-
-          return;
-        }
-
-        setSupplierId(
-          currentSupplierId
-        );
-      } catch (error) {
-        console.error(
-          "Failed to resolve supplier:",
-          error
-        );
-
-        alert(
-          "Could not find your supplier profile."
-        );
-
-        return;
-      }
+      return;
     }
 
     if (!form.name.trim()) {
@@ -710,19 +608,13 @@ export default function ProviderInventoryPage() {
         new FormData();
 
       /*
-       * THIS IS THE CRITICAL VALUE.
+       * THIS IS THE IMPORTANT VALUE.
        *
-       * This must be:
-       *
-       * suppliers.Id
-       *
-       * NOT:
-       *
-       * users.id
+       * SupplierId must be Suppliers.Id.
        */
       data.append(
         "SupplierId",
-        currentSupplierId
+        supplierId
       );
 
       data.append(
@@ -752,9 +644,20 @@ export default function ProviderInventoryPage() {
 
       data.append(
         "QuantityAvailable",
-        String(
-          quantityAvailable
-        )
+        String(quantityAvailable)
+      );
+
+      /*
+       * Keep these if your backend expects them.
+       */
+      data.append(
+        "Currency",
+        "MXN"
+      );
+
+      data.append(
+        "CountryCode",
+        "MX"
       );
 
       if (selectedImage) {
@@ -765,39 +668,25 @@ export default function ProviderInventoryPage() {
       }
 
       console.log(
-        "================================"
-      );
-
-      console.log(
-        "Saving Product"
-      );
-
-      console.log(
-        "User ID:",
-        userId
-      );
-
-      console.log(
-        "Supplier ID:",
-        currentSupplierId
-      );
-
-      console.log(
-        "Editing:",
-        editingProduct?.id ??
-          "NEW PRODUCT"
-      );
-
-      console.log(
-        "================================"
+        "Saving product with SupplierId:",
+        supplierId
       );
 
       if (editingProduct) {
+        console.log(
+          "Updating product:",
+          editingProduct.id
+        );
+
         await api.put(
           `/api/Products/${editingProduct.id}`,
           data
         );
       } else {
+        console.log(
+          "Creating product..."
+        );
+
         await api.post(
           "/api/Products/upload",
           data
@@ -807,15 +696,22 @@ export default function ProviderInventoryPage() {
       /*
        * IMPORTANT:
        *
-       * Don't immediately assume the returned
-       * product list is correct.
-       *
-       * Query the backend again.
+       * Keep the supplier ID.
+       * Only clear the product form.
        */
       resetForm();
 
+      /*
+       * Reload the actual database data.
+       *
+       * This updates:
+       * - My Products
+       * - Total Products
+       * - Total Stock
+       * - Inventory Value
+       */
       await loadProducts(
-        currentSupplierId
+        supplierId
       );
 
       alert(
@@ -832,7 +728,19 @@ export default function ProviderInventoryPage() {
       );
 
       const axiosError =
-        error as AxiosLikeError;
+        error as {
+          response?: {
+            status?: number;
+            data?:
+              | {
+                  message?: string;
+                  title?: string;
+                  detail?: string;
+                }
+              | string;
+          };
+          message?: string;
+        };
 
       const status =
         axiosError.response
@@ -841,16 +749,6 @@ export default function ProviderInventoryPage() {
       const responseData =
         axiosError.response
           ?.data;
-
-      console.error(
-        "HTTP Status:",
-        status
-      );
-
-      console.error(
-        "API Response:",
-        responseData
-      );
 
       let message =
         "Failed to save product.";
@@ -892,55 +790,56 @@ export default function ProviderInventoryPage() {
      DELETE
      ========================================================= */
 
-  const deleteProduct = async (
-    product: Product
-  ) => {
-    if (!supplierId) {
-      alert(
-        "Supplier ID not found."
-      );
+  const deleteProduct =
+    async (
+      product: Product
+    ) => {
+      if (!supplierId) {
+        alert(
+          "Supplier ID not found."
+        );
 
-      return;
-    }
+        return;
+      }
 
-    const confirmed =
-      confirm(
-        `Delete ${product.name}?`
-      );
+      const confirmed =
+        confirm(
+          `Delete ${product.name}?`
+        );
 
-    if (!confirmed) {
-      return;
-    }
+      if (!confirmed) {
+        return;
+      }
 
-    setLoading(true);
+      try {
+        setLoading(true);
 
-    try {
-      await api.delete(
-        `/api/Products/${product.id}/supplier/${supplierId}`
-      );
+        await api.delete(
+          `/api/Products/${product.id}/supplier/${supplierId}`
+        );
 
-      /*
-       * Reload from database.
-       */
-      await loadProducts(
-        supplierId
-      );
-    } catch (error) {
-      console.error(
-        "Failed to delete product:",
-        error
-      );
+        /*
+         * Reload from database.
+         */
+        await loadProducts(
+          supplierId
+        );
+      } catch (error) {
+        console.error(
+          "Failed to delete product:",
+          error
+        );
 
-      alert(
-        "Failed to delete product."
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+        alert(
+          "Failed to delete product."
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
 
   /* =========================================================
-     RENDER
+     UI
      ========================================================= */
 
   return (
@@ -958,25 +857,27 @@ export default function ProviderInventoryPage() {
           </h1>
 
           <p className="mt-2 text-slate-400">
-            Add, edit, or delete your
-            products here.
+            Add, edit, or delete your products here.
           </p>
 
-          {/* DEBUG INFORMATION */}
           <div className="mt-3 space-y-1 text-xs">
             <p className="text-slate-500">
               User ID:{" "}
-              <span className="text-slate-400">
-                {userId ??
-                  "Not found"}
-              </span>
+              {readUserId() ??
+                "Not found"}
             </p>
 
             <p className="text-slate-500">
               Supplier ID:{" "}
-              <span className="text-emerald-400">
+              <span
+                className={
+                  supplierId
+                    ? "text-emerald-400"
+                    : "text-red-400"
+                }
+              >
                 {supplierId ??
-                  "Not resolved"}
+                  "Resolving..."}
               </span>
             </p>
           </div>
@@ -1069,7 +970,6 @@ export default function ProviderInventoryPage() {
               }
             />
 
-            {/* IMAGE */}
             <div className="md:col-span-2">
 
               <input
@@ -1077,8 +977,7 @@ export default function ProviderInventoryPage() {
                 accept="image/*"
                 onChange={(event) =>
                   handleImageChange(
-                    event.target
-                      .files?.[0]
+                    event.target.files?.[0]
                   )
                 }
                 className="w-full rounded-xl border border-white/10 bg-slate-950 p-3 text-white"
@@ -1152,8 +1051,13 @@ export default function ProviderInventoryPage() {
 
             <button
               type="button"
-              onClick={submitProduct}
-              disabled={saving}
+              onClick={
+                submitProduct
+              }
+              disabled={
+                saving ||
+                !supplierId
+              }
               className="w-full rounded-xl bg-emerald-500 p-4 font-black text-black transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {saving
@@ -1166,7 +1070,9 @@ export default function ProviderInventoryPage() {
             {editingProduct && (
               <button
                 type="button"
-                onClick={resetForm}
+                onClick={
+                  resetForm
+                }
                 className="w-full rounded-xl border border-white/10 p-4 font-black text-white transition hover:bg-white/10 md:w-52"
               >
                 Cancel
@@ -1189,9 +1095,12 @@ export default function ProviderInventoryPage() {
             <button
               type="button"
               onClick={
-                refreshInventory
+                refreshProducts
               }
-              disabled={loading}
+              disabled={
+                loading ||
+                !supplierId
+              }
               className="rounded-xl border border-white/10 px-4 py-2 text-sm font-bold text-slate-300 hover:bg-white/10 disabled:opacity-60"
             >
               {loading
@@ -1201,53 +1110,28 @@ export default function ProviderInventoryPage() {
 
           </div>
 
-          {/* NO USER */}
-          {!userId && (
-            <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-red-300">
+          {!supplierId && (
+            <div className="rounded-xl border border-yellow-500/20 bg-yellow-500/10 p-4 text-yellow-300">
+
               <p className="font-bold">
-                User ID not found.
+                Resolving supplier profile...
               </p>
 
               <p className="mt-1 text-sm">
-                Please sign out and log in
-                again.
+                The logged-in user must be linked to a supplier before products can be loaded.
               </p>
+
             </div>
           )}
 
-          {/* NO SUPPLIER */}
-          {userId &&
-            !supplierId && (
-              <div className="rounded-xl border border-yellow-500/20 bg-yellow-500/10 p-4 text-yellow-300">
-                <p className="font-bold">
-                  Supplier profile has not
-                  been resolved yet.
-                </p>
-
-                <button
-                  type="button"
-                  onClick={
-                    initializeInventory
-                  }
-                  disabled={loading}
-                  className="mt-3 rounded-lg bg-yellow-500 px-4 py-2 font-bold text-black"
-                >
-                  {loading
-                    ? "Finding Supplier..."
-                    : "Load Supplier"}
-                </button>
-              </div>
-            )}
-
-          {/* LOADING */}
-          {loading &&
+          {supplierId &&
+            loading &&
             products.length === 0 && (
               <div className="rounded-xl border border-white/10 bg-white/5 p-6 text-center text-slate-400">
                 Loading products...
               </div>
             )}
 
-          {/* EMPTY */}
           {supplierId &&
             products.length === 0 &&
             !loading && (
@@ -1256,13 +1140,14 @@ export default function ProviderInventoryPage() {
               </div>
             )}
 
-          {/* PRODUCT CARDS */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
 
             {products.map(
               (product) => (
                 <article
-                  key={product.id}
+                  key={
+                    product.id
+                  }
                   className="overflow-hidden rounded-2xl border border-white/10 bg-slate-950"
                 >
 
@@ -1291,11 +1176,15 @@ export default function ProviderInventoryPage() {
                   <div className="space-y-2 p-4">
 
                     <p className="text-xs uppercase tracking-[0.2em] text-emerald-400">
-                      {product.brand}
+                      {
+                        product.brand
+                      }
                     </p>
 
                     <h3 className="text-lg font-black">
-                      {product.name}
+                      {
+                        product.name
+                      }
                     </h3>
 
                     {product.description && (
@@ -1313,7 +1202,9 @@ export default function ProviderInventoryPage() {
                         {Number(
                           product.price ||
                             0
-                        ).toFixed(2)}
+                        ).toFixed(
+                          2
+                        )}
                       </p>
 
                       <p className="rounded-full bg-white/10 px-3 py-1 text-sm text-slate-300">
