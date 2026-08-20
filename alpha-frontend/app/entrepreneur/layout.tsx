@@ -7,17 +7,17 @@ export default function EntrepreneurLayout({
 }) {
   return (
     <RoleGuard
-      allowedRoles={[
-        "community_builder",
-        "driver",
-        "mechanic",
-        "supplier",
-        "provider",
-        "customer",
-        "admin",
-        "dispatcher",
-      ]}
-    >
+  allowedRoles={[
+    "community_builder",
+    "driver",
+    "mechanic",
+    "supplier",
+    "provider",
+    "customer",
+    "admin",
+    "dispatcher",
+  ]}
+>
       {children}
     </RoleGuard>
   );

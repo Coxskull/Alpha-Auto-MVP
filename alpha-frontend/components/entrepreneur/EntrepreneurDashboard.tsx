@@ -188,12 +188,17 @@ useEffect(() => {
 
   return (
     <RoleGuard
-      allowedRoles={[
-        "community_builder",
-        "admin",
-        "dispatcher",
-      ]}
-    >
+  allowedRoles={[
+    "community_builder",
+    "driver",
+    "mechanic",
+    "supplier",
+    "provider",
+    "customer",
+    "admin",
+    "dispatcher",
+  ]}
+>
       <main className="min-h-screen bg-slate-50 p-4 sm:p-6 lg:p-8">
         <div className="mx-auto max-w-7xl space-y-6">
 
