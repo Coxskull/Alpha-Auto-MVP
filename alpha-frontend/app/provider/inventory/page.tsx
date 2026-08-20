@@ -37,14 +37,23 @@ function getSupplierId() {
   if (typeof window === "undefined") return null;
 
   const storedSupplierId = localStorage.getItem("supplierId");
-  if (storedSupplierId) return storedSupplierId;
+
+  if (storedSupplierId?.trim()) {
+    return storedSupplierId.trim();
+  }
 
   const alphaUser = localStorage.getItem("alpha_user");
+
   if (!alphaUser) return null;
 
   try {
     const user = JSON.parse(alphaUser);
-    return user.supplierId || user.SupplierId || user.providerId || user.id || null;
+
+    return (
+      user.supplierId ||
+      user.SupplierId ||
+      null
+    );
   } catch {
     return null;
   }
