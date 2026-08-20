@@ -1,21 +1,12 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-  useSyncExternalStore,
-} from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import api from "@/services/api";
 import Image from "next/image";
 
-/* =========================================================
-   TYPES
-========================================================= */
-
 type Product = {
   id: string;
+  supplierId?: string;
   partNumber?: string;
   brand: string;
   name: string;
@@ -23,9 +14,9 @@ type Product = {
   imageUrl?: string;
   price: number;
   quantityAvailable: number;
-  isActive?: boolean;
   currency?: string;
   countryCode?: string;
+  isActive?: boolean;
 };
 
 type ProductForm = {
@@ -37,6 +28,11 @@ type ProductForm = {
   quantityAvailable: string;
 };
 
+type StoredIdentity = {
+  supplierId: string | null;
+  userId: string | null;
+};
+
 const initialForm: ProductForm = {
   partNumber: "",
   brand: "",
@@ -46,538 +42,241 @@ const initialForm: ProductForm = {
   quantityAvailable: "",
 };
 
-/* =========================================================
-   SUPPLIER ID STORE
-========================================================= */
-
 /**
- * We use an external store instead of:
+ * Read the authenticated user's IDs synchronously.
  *
- * useEffect(() => {
- *   setSupplierId(...)
- * }, []);
+ * Important:
+ * - supplierId is preferred.
+ * - userId is used as a fallback.
  *
- * because React's set-state-in-effect rule correctly warns
- * about synchronous state updates inside effects.
+ * The backend ProductsController already supports:
+ * GET /api/Products/supplier/user/{userId}
  *
- * useSyncExternalStore is intended for external browser state
- * such as localStorage/event-based state.
+ * and UploadProduct / UpdateProduct can resolve SupplierId
+ * using either Supplier.Id or Supplier.UserId.
  */
-
-let supplierIdSnapshot: string | null = null;
-
-let supplierStoreInitialized = false;
-
-const supplierListeners = new Set<() => void>();
-
-let supplierResolvePromise: Promise<void> | null = null;
-
-/* ---------------------------------------------------------
-   Read supplier ID from localStorage
---------------------------------------------------------- */
-
-function readStoredSupplierId(): string | null {
+function getStoredIdentity(): StoredIdentity {
   if (typeof window === "undefined") {
-    return null;
+    return {
+      supplierId: null,
+      userId: null,
+    };
   }
 
-  const directSupplierId =
-    window.localStorage.getItem("supplierId");
+  const storedSupplierId =
+    localStorage.getItem("supplierId")?.trim() || null;
 
-  if (directSupplierId?.trim()) {
-    return directSupplierId.trim();
-  }
+  const alphaUser = localStorage.getItem("alpha_user");
 
-  const alphaUserRaw =
-    window.localStorage.getItem("alpha_user");
-
-  if (!alphaUserRaw) {
-    return null;
+  if (!alphaUser) {
+    return {
+      supplierId: storedSupplierId,
+      userId: null,
+    };
   }
 
   try {
-    const user = JSON.parse(alphaUserRaw);
+    const user = JSON.parse(alphaUser) as {
+      id?: string;
+      Id?: string;
+      supplierId?: string | null;
+      SupplierId?: string | null;
+      providerId?: string | null;
+      ProviderId?: string | null;
+    };
+
+    const userId =
+      user.id?.trim() ||
+      user.Id?.trim() ||
+      null;
 
     const supplierId =
-      user?.supplierId ??
-      user?.SupplierId ??
-      user?.supplier?.id ??
-      user?.supplier?.Id ??
+      storedSupplierId ||
+      user.supplierId?.trim() ||
+      user.SupplierId?.trim() ||
+      user.providerId?.trim() ||
+      user.ProviderId?.trim() ||
       null;
 
-    if (!supplierId) {
-      return null;
-    }
-
-    const id = String(supplierId).trim();
-
-    if (!id) {
-      return null;
-    }
-
-    window.localStorage.setItem(
-      "supplierId",
-      id
-    );
-
-    return id;
+    return {
+      supplierId,
+      userId,
+    };
   } catch (error) {
     console.error(
       "Failed to parse alpha_user:",
       error
     );
 
-    return null;
+    return {
+      supplierId: storedSupplierId,
+      userId: null,
+    };
   }
 }
 
-/* ---------------------------------------------------------
-   Read logged-in user ID
---------------------------------------------------------- */
-
-function readStoredUserId(): string | null {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
-  const alphaUserRaw =
-    window.localStorage.getItem("alpha_user");
-
-  if (!alphaUserRaw) {
-    return null;
-  }
-
-  try {
-    const user = JSON.parse(alphaUserRaw);
-
-    const userId =
-      user?.id ??
-      user?.Id ??
-      user?.userId ??
-      user?.UserId ??
-      user?.user_id ??
-      user?.userID ??
-      null;
-
-    if (!userId) {
-      return null;
-    }
-
-    const id = String(userId).trim();
-
-    return id || null;
-  } catch (error) {
-    console.error(
-      "Failed to parse alpha_user:",
-      error
-    );
-
-    return null;
-  }
-}
-
-/* ---------------------------------------------------------
-   Notify subscribers
---------------------------------------------------------- */
-
-function notifySupplierListeners() {
-  supplierListeners.forEach(
-    (listener) => listener()
-  );
-}
-
-/* ---------------------------------------------------------
-   Resolve supplier ID
---------------------------------------------------------- */
-
-async function resolveSupplierId(): Promise<void> {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  if (supplierResolvePromise) {
-    return supplierResolvePromise;
-  }
-
-  supplierResolvePromise = (async () => {
-    /**
-     * 1. Try localStorage first.
-     */
-    const storedSupplierId =
-      readStoredSupplierId();
-
-    if (storedSupplierId) {
-      supplierIdSnapshot =
-        storedSupplierId;
-
-      notifySupplierListeners();
-
-      return;
-    }
-
-    /**
-     * 2. No supplierId stored.
-     *
-     * Try to get the logged-in user's ID.
-     */
-    const userId =
-      readStoredUserId();
-
-    if (!userId) {
-      console.warn(
-        "Unable to resolve supplier ID because no user ID was found in alpha_user."
-      );
-
-      supplierIdSnapshot = null;
-
-      notifySupplierListeners();
-
-      return;
-    }
-
-    console.log(
-      "Resolving supplier from user ID:",
-      userId
-    );
-
-    /**
-     * 3. Resolve Supplier.Id using:
-     *
-     * GET /api/Products/supplier/user/{userId}
-     *
-     * Backend returns:
-     *
-     * {
-     *   id: "...",
-     *   userId: "..."
-     * }
-     */
-    try {
-      const response = await api.get<{
-  id: string;
-  userId: string;
-}>(
-  `/api/Products/supplier/by-user/${encodeURIComponent(
-    userId
-  )}`
-);
-
-      /**
-       * This endpoint currently returns products,
-       * not the Supplier entity itself.
-       *
-       * Therefore we obtain SupplierId from the
-       * first returned product.
-       */
-      const products = Array.isArray(
-        response.data
-      )
-        ? response.data
-        : [];
-
-      const firstProduct =
-        products[0];
-
-      /**
-       * Product response contains supplierId
-       * from the backend model.
-       *
-       * We support both camelCase and PascalCase.
-       */
-      const resolvedSupplierId =
-  response.data?.id;
-
-if (resolvedSupplierId) {
-  const id =
-    String(
-      resolvedSupplierId
-    ).trim();
-
-  supplierIdSnapshot = id;
-
-  window.localStorage.setItem(
-    "supplierId",
-    id
+export default function ProviderInventoryPage() {
+  /**
+   * Read identity once during initial render.
+   *
+   * This intentionally does NOT use:
+   *
+   * useEffect(() => {
+   *   setSupplierId(...)
+   * }, []);
+   *
+   * That pattern is what triggered react-hooks/set-state-in-effect.
+   */
+  const [identity] = useState<StoredIdentity>(() =>
+    getStoredIdentity()
   );
 
-  console.log(
-    "Resolved Supplier ID:",
-    id
+  const supplierId = identity.supplierId;
+  const userId = identity.userId;
+
+  /**
+   * The value used when creating/updating products.
+   *
+   * If supplierId exists, use the real Supplier.Id.
+   * Otherwise use userId because the backend resolves
+   * Supplier.UserId as a fallback.
+   */
+  const ownerId = supplierId || userId;
+
+  const [products, setProducts] = useState<Product[]>(
+    []
   );
 
-  notifySupplierListeners();
+  const [form, setForm] =
+    useState<ProductForm>(initialForm);
 
-  return;
-}
+  const [editingProduct, setEditingProduct] =
+    useState<Product | null>(null);
 
-      console.warn(
-        "Supplier profile exists, but no product was returned. Supplier ID cannot be inferred from this endpoint."
-      );
+  const [selectedImage, setSelectedImage] =
+    useState<File | null>(null);
 
-      supplierIdSnapshot = null;
+  const [previewUrl, setPreviewUrl] =
+    useState<string | null>(null);
 
-      notifySupplierListeners();
-    } catch (error) {
-      console.error(
-        "Failed to resolve supplier from user ID:",
-        error
-      );
-
-      supplierIdSnapshot = null;
-
-      notifySupplierListeners();
-    }
-  })();
-
-  try {
-    await supplierResolvePromise;
-  } finally {
-    supplierResolvePromise = null;
-  }
-}
-
-/* ---------------------------------------------------------
-   External store subscription
---------------------------------------------------------- */
-
-function subscribeToSupplierId(
-  callback: () => void
-) {
-  if (typeof window === "undefined") {
-    return () => {};
-  }
-
-  supplierListeners.add(callback);
-
-  const handleStorage = () => {
-    const newSupplierId =
-      readStoredSupplierId();
-
-    if (
-      newSupplierId !==
-      supplierIdSnapshot
-    ) {
-      supplierIdSnapshot =
-        newSupplierId;
-
-      notifySupplierListeners();
-    }
-
-    /**
-     * If supplier ID was removed,
-     * try resolving it again from alpha_user.
-     */
-    if (!newSupplierId) {
-      void resolveSupplierId();
-    }
-  };
-
-  window.addEventListener(
-    "storage",
-    handleStorage
+  /**
+   * Start loading only when we actually have an identity.
+   */
+  const [loading, setLoading] = useState(
+    Boolean(ownerId)
   );
 
-  window.addEventListener(
-    "supplier-id-changed",
-    handleStorage
+  const [saving, setSaving] = useState(false);
+
+  /**
+   * ------------------------------------------------------
+   * LOAD PRODUCTS
+   * ------------------------------------------------------
+   *
+   * This function is used by buttons and after CRUD operations.
+   *
+   * It is NOT called from useEffect.
+   *
+   * That is important for the React compiler ESLint rule.
+   */
+  const loadProducts = useCallback(
+    async (id: string, byUserId = false) => {
+      setLoading(true);
+
+      try {
+        const endpoint = byUserId
+          ? `/api/Products/supplier/user/${id}`
+          : `/api/Products/supplier/${id}`;
+
+        console.log(
+          `Loading inventory using ${
+            byUserId ? "userId" : "supplierId"
+          }:`,
+          id
+        );
+
+        const res = await api.get<Product[]>(
+          endpoint
+        );
+
+        setProducts(
+          Array.isArray(res.data)
+            ? res.data
+            : []
+        );
+      } catch (error) {
+        console.error(
+          "Failed to load products:",
+          error
+        );
+
+        setProducts([]);
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
   );
 
   /**
-   * Initialize only after subscribing.
+   * ------------------------------------------------------
+   * INITIAL INVENTORY LOAD
+   * ------------------------------------------------------
    *
-   * This keeps render pure and avoids
-   * setState-in-effect problems.
+   * We deliberately do not call loadProducts() here.
+   *
+   * Calling a function containing setState directly from
+   * an effect is what React's set-state-in-effect rule
+   * complained about.
+   *
+   * Instead, the async operation itself is defined inside
+   * the effect and state is updated only after the external
+   * API operation resolves.
    */
-  if (!supplierStoreInitialized) {
-    supplierStoreInitialized = true;
-
-    const storedSupplierId =
-      readStoredSupplierId();
-
-    if (storedSupplierId) {
-      supplierIdSnapshot =
-        storedSupplierId;
-
-      notifySupplierListeners();
-    } else {
-      void resolveSupplierId();
-    }
-  }
-
-  return () => {
-    supplierListeners.delete(callback);
-
-    window.removeEventListener(
-      "storage",
-      handleStorage
-    );
-
-    window.removeEventListener(
-      "supplier-id-changed",
-      handleStorage
-    );
-  };
-}
-
-function getSupplierIdSnapshot() {
-  return supplierIdSnapshot;
-}
-
-function getServerSupplierIdSnapshot() {
-  return null;
-}
-
-/* =========================================================
-   COMPONENT
-========================================================= */
-
-export default function ProviderInventoryPage() {
-  const supplierId =
-    useSyncExternalStore(
-      subscribeToSupplierId,
-      getSupplierIdSnapshot,
-      getServerSupplierIdSnapshot
-    );
-
-  const [products, setProducts] =
-    useState<Product[]>([]);
-
-  const [form, setForm] =
-    useState<ProductForm>(
-      initialForm
-    );
-
-  const [
-    editingProduct,
-    setEditingProduct,
-  ] = useState<Product | null>(null);
-
-  const [
-    selectedImage,
-    setSelectedImage,
-  ] = useState<File | null>(null);
-
-  const [
-    previewUrl,
-    setPreviewUrl,
-  ] = useState<string | null>(null);
-
-  const [loading, setLoading] =
-    useState(false);
-
-  const [saving, setSaving] =
-    useState(false);
-
-  /* =======================================================
-     LOAD PRODUCTS
-  ======================================================= */
-
-  const loadProducts =
-    useCallback(
-      async (id: string) => {
-        if (!id) {
-          console.warn(
-            "Cannot load products: supplierId is empty."
-          );
-
-          return;
-        }
-
-        setLoading(true);
-
-        try {
-          console.log(
-            "Loading products for supplier:",
-            id
-          );
-
-          const response =
-            await api.get<Product[]>(
-              `/api/Products/supplier/${encodeURIComponent(
-                id
-              )}`
-            );
-
-          console.log(
-            "Products returned from API:",
-            response.data
-          );
-
-          setProducts(
-            Array.isArray(
-              response.data
-            )
-              ? response.data
-              : []
-          );
-        } catch (error) {
-          console.error(
-            "Failed to load products:",
-            error
-          );
-
-          setProducts([]);
-        } finally {
-          setLoading(false);
-        }
-      },
-      []
-    );
-
-  /* =======================================================
-     LOAD PRODUCTS WHEN SUPPLIER ID CHANGES
-  ======================================================= */
-
   useEffect(() => {
-    if (!supplierId) {
+    if (!ownerId) {
       return;
     }
 
     let cancelled = false;
 
-    /**
-     * IMPORTANT:
-     *
-     * Do not call setState directly here.
-     *
-     * loadProducts handles the asynchronous
-     * state updates itself.
-     */
-    const load = async () => {
+    async function fetchInventory() {
       try {
-        setLoading(true);
+        const endpoint = supplierId
+          ? `/api/Products/supplier/${supplierId}`
+          : userId
+            ? `/api/Products/supplier/user/${userId}`
+            : null;
+
+        if (!endpoint) {
+          return;
+        }
 
         console.log(
-          "Loading inventory for supplier:",
-          supplierId
+          "Loading inventory:",
+          endpoint
         );
 
-        const response =
-          await api.get<Product[]>(
-            `/api/Products/supplier/${encodeURIComponent(
-              supplierId
-            )}`
-          );
+        const res = await api.get<Product[]>(
+          endpoint
+        );
 
         if (cancelled) {
           return;
         }
 
-        const data =
-          Array.isArray(
-            response.data
-          )
-            ? response.data
-            : [];
-
-        setProducts(data);
+        setProducts(
+          Array.isArray(res.data)
+            ? res.data
+            : []
+        );
       } catch (error) {
         if (cancelled) {
           return;
         }
 
         console.error(
-          "Failed to load products:",
+          "Failed to load inventory:",
           error
         );
 
@@ -587,157 +286,123 @@ export default function ProviderInventoryPage() {
           setLoading(false);
         }
       }
-    };
+    }
 
-    void load();
+    void fetchInventory();
 
     return () => {
       cancelled = true;
     };
-  }, [supplierId]);
+  }, [ownerId, supplierId, userId]);
 
-  /* =======================================================
-     TOTAL INVENTORY VALUE
-  ======================================================= */
-
-  const totalInventoryValue =
-    useMemo(() => {
-      return products.reduce(
-        (sum, product) => {
-          return (
-            sum +
-            Number(
-              product.price || 0
-            ) *
-              Number(
-                product.quantityAvailable ||
-                  0
-              )
-          );
-        },
-        0
-      );
-    }, [products]);
-
-  /* =======================================================
-     TOTAL STOCK
-  ======================================================= */
+  /**
+   * ------------------------------------------------------
+   * INVENTORY CALCULATIONS
+   * ------------------------------------------------------
+   */
 
   const totalStock = useMemo(() => {
     return products.reduce(
       (sum, product) =>
         sum +
-        Number(
-          product.quantityAvailable || 0
-        ),
+        Number(product.quantityAvailable || 0),
       0
     );
   }, [products]);
 
-  /* =======================================================
-     UPDATE FORM
-  ======================================================= */
+  const totalInventoryValue = useMemo(() => {
+    return products.reduce(
+      (sum, product) =>
+        sum +
+        Number(product.price || 0) *
+          Number(product.quantityAvailable || 0),
+      0
+    );
+  }, [products]);
+
+  /**
+   * ------------------------------------------------------
+   * FORM
+   * ------------------------------------------------------
+   */
 
   const updateForm = (
     field: keyof ProductForm,
     value: string
   ) => {
-    setForm((previous) => ({
-      ...previous,
+    setForm((prev) => ({
+      ...prev,
       [field]: value,
     }));
   };
 
-  /* =======================================================
-     IMAGE SELECTION
-  ======================================================= */
+  /**
+   * ------------------------------------------------------
+   * IMAGE
+   * ------------------------------------------------------
+   */
 
-  const handleImageChange = (
-    file?: File
-  ) => {
+  const handleImageChange = (file?: File) => {
     if (!file) {
       return;
     }
 
-    if (
-      previewUrl?.startsWith(
-        "blob:"
-      )
-    ) {
-      URL.revokeObjectURL(
-        previewUrl
-      );
+    if (!file.type.startsWith("image/")) {
+      alert("Please select an image file.");
+      return;
     }
-
-    const newPreviewUrl =
-      URL.createObjectURL(file);
 
     setSelectedImage(file);
-    setPreviewUrl(newPreviewUrl);
+
+    const objectUrl =
+      URL.createObjectURL(file);
+
+    setPreviewUrl(objectUrl);
   };
 
-  /* =======================================================
-     RESET FORM
-  ======================================================= */
+  /**
+   * ------------------------------------------------------
+   * RESET FORM
+   * ------------------------------------------------------
+   */
 
   const resetForm = () => {
-    if (
-      previewUrl?.startsWith(
-        "blob:"
-      )
-    ) {
-      URL.revokeObjectURL(
-        previewUrl
-      );
-    }
-
     setForm(initialForm);
-
     setEditingProduct(null);
-
     setSelectedImage(null);
-
     setPreviewUrl(null);
   };
 
-  /* =======================================================
-     EDIT PRODUCT
-  ======================================================= */
+  /**
+   * ------------------------------------------------------
+   * EDIT
+   * ------------------------------------------------------
+   */
 
-  const startEdit = (
-    product: Product
-  ) => {
+  const startEdit = (product: Product) => {
     setEditingProduct(product);
 
     setForm({
       partNumber:
-        product.partNumber ?? "",
-
+        product.partNumber || "",
       brand:
-        product.brand ?? "",
-
+        product.brand || "",
       name:
-        product.name ?? "",
-
+        product.name || "",
       description:
-        product.description ?? "",
-
+        product.description || "",
       price:
-        String(
-          product.price ?? ""
-        ),
-
+        String(product.price ?? ""),
       quantityAvailable:
         String(
-          product.quantityAvailable ??
-            ""
+          product.quantityAvailable ?? ""
         ),
     });
 
     setSelectedImage(null);
 
     setPreviewUrl(
-      product.imageUrl ?? null
+      product.imageUrl || null
     );
 
     window.scrollTo({
@@ -746,319 +411,261 @@ export default function ProviderInventoryPage() {
     });
   };
 
-  /* =======================================================
-     SUBMIT PRODUCT
-  ======================================================= */
+  /**
+   * ------------------------------------------------------
+   * CREATE / UPDATE PRODUCT
+   * ------------------------------------------------------
+   */
 
-  const submitProduct =
-    async () => {
-      if (!supplierId) {
-        alert(
-          "Supplier ID not found.\n\nPlease sign out and log in again so your supplier ID can be loaded."
+  const submitProduct = async () => {
+    if (!ownerId) {
+      alert(
+        "Supplier account information was not found. Please log in again."
+      );
+      return;
+    }
+
+    if (!form.name.trim()) {
+      alert("Product name is required.");
+      return;
+    }
+
+    if (!form.brand.trim()) {
+      alert("Brand is required.");
+      return;
+    }
+
+    const price = Number(form.price);
+
+    const quantityAvailable = Number(
+      form.quantityAvailable
+    );
+
+    if (
+      !Number.isFinite(price) ||
+      price <= 0
+    ) {
+      alert(
+        "Price must be greater than 0."
+      );
+      return;
+    }
+
+    if (
+      !Number.isInteger(
+        quantityAvailable
+      ) ||
+      quantityAvailable < 0
+    ) {
+      alert(
+        "Stock quantity must be a whole number greater than or equal to 0."
+      );
+      return;
+    }
+
+    setSaving(true);
+
+    try {
+      const data = new FormData();
+
+      /**
+       * Backend supports Supplier.Id OR Supplier.UserId.
+       *
+       * Therefore ownerId can safely be either one.
+       */
+      data.append(
+        "SupplierId",
+        ownerId
+      );
+
+      data.append(
+        "PartNumber",
+        form.partNumber.trim()
+      );
+
+      data.append(
+        "Brand",
+        form.brand.trim()
+      );
+
+      data.append(
+        "Name",
+        form.name.trim()
+      );
+
+      data.append(
+        "Description",
+        form.description.trim()
+      );
+
+      data.append(
+        "Price",
+        String(price)
+      );
+
+      data.append(
+        "QuantityAvailable",
+        String(quantityAvailable)
+      );
+
+      /**
+       * Keep the same defaults used by the backend.
+       */
+      data.append(
+        "Currency",
+        "PHP"
+      );
+
+      data.append(
+        "CountryCode",
+        "PH"
+      );
+
+      if (selectedImage) {
+        data.append(
+          "Image",
+          selectedImage
         );
-
-        console.error(
-          "submitProduct stopped because supplierId is undefined."
-        );
-
-        return;
       }
 
-      if (!form.name.trim()) {
-        alert(
-          "Product name is required."
-        );
-
-        return;
-      }
-
-      if (!form.brand.trim()) {
-        alert(
-          "Brand is required."
-        );
-
-        return;
-      }
-
-      const price =
-        Number(form.price);
-
-      const quantityAvailable =
-        Number(
-          form.quantityAvailable
-        );
-
-      if (
-        !Number.isFinite(price) ||
-        price <= 0
-      ) {
-        alert(
-          "Price must be greater than 0."
-        );
-
-        return;
-      }
-
-      if (
-        !Number.isInteger(
-          quantityAvailable
-        ) ||
-        quantityAvailable < 0
-      ) {
-        alert(
-          "Stock quantity must be a whole number and cannot be negative."
-        );
-
-        return;
-      }
-
-      setSaving(true);
-
-      try {
-        const data =
-          new FormData();
-
+      if (editingProduct) {
         /**
-         * Always send the actual Supplier.Id.
+         * UpdateProduct also supports resolving the
+         * supplier using Id OR UserId.
          */
-        data.append(
-          "SupplierId",
-          supplierId
+        await api.put(
+          `/api/Products/${editingProduct.id}`,
+          data
         );
-
-        data.append(
-          "PartNumber",
-          form.partNumber.trim()
+      } else {
+        await api.post(
+          "/api/Products/upload",
+          data
         );
+      }
 
-        data.append(
-          "Brand",
-          form.brand.trim()
-        );
+      resetForm();
 
-        data.append(
-          "Name",
-          form.name.trim()
-        );
-
-        data.append(
-          "Description",
-          form.description.trim()
-        );
-
-        data.append(
-          "Price",
-          String(price)
-        );
-
-        data.append(
-          "QuantityAvailable",
-          String(
-            quantityAvailable
-          )
-        );
-
-        /**
-         * Keep the product active.
-         */
-        data.append(
-          "IsActive",
-          "true"
-        );
-
-        if (selectedImage) {
-          data.append(
-            "Image",
-            selectedImage
-          );
-        }
-
-        console.log(
-          "Saving product..."
-        );
-
-        console.log(
-          "SupplierId:",
-          supplierId
-        );
-
-        if (editingProduct) {
-          console.log(
-            "Updating product:",
-            editingProduct.id
-          );
-
-          await api.put(
-            `/api/Products/${editingProduct.id}`,
-            data
-          );
-        } else {
-          console.log(
-            "Creating new product..."
-          );
-
-          await api.post(
-            "/api/Products/upload",
-            data
-          );
-        }
-
-        /**
-         * Remember which operation succeeded
-         * before resetForm clears editingProduct.
-         */
-        const wasEditing =
-          Boolean(editingProduct);
-
-        resetForm();
-
-        /**
-         * Reload from backend.
-         */
+      /**
+       * Refresh through the real supplier endpoint
+       * when possible.
+       */
+      if (supplierId) {
         await loadProducts(
-          supplierId
+          supplierId,
+          false
         );
-
-        alert(
-          wasEditing
-            ? "Product updated successfully."
-            : "Product added successfully."
-        );
-      } catch (error: unknown) {
-        console.error(
-          "Failed to save product:",
-          error
-        );
-
-        const axiosError =
-          error as {
-            response?: {
-              status?: number;
-
-              data?:
-                | {
-                    message?: string;
-                    title?: string;
-                    detail?: string;
-                  }
-                | string;
-            };
-
-            message?: string;
-          };
-
-        const status =
-          axiosError.response
-            ?.status;
-
-        const responseData =
-          axiosError.response
-            ?.data;
-
-        console.error(
-          "Status:",
-          status
-        );
-
-        console.error(
-          "Response:",
-          responseData
-        );
-
-        let message =
-          "Failed to save product.";
-
-        if (
-          typeof responseData ===
-          "string"
-        ) {
-          message =
-            responseData;
-        } else if (
-          responseData
-        ) {
-          message =
-            responseData.message ??
-            responseData.title ??
-            responseData.detail ??
-            message;
-        } else if (
-          axiosError.message
-        ) {
-          message =
-            axiosError.message;
-        }
-
-        alert(
-          `Failed to save product${
-            status
-              ? ` (${status})`
-              : ""
-          }:\n${message}`
-        );
-      } finally {
-        setSaving(false);
-      }
-    };
-
-  /* =======================================================
-     DELETE PRODUCT
-  ======================================================= */
-
-  const deleteProduct =
-    async (
-      product: Product
-    ) => {
-      if (!supplierId) {
-        alert(
-          "Supplier ID not found."
-        );
-
-        return;
-      }
-
-      const confirmed =
-        window.confirm(
-          `Delete ${product.name}?`
-        );
-
-      if (!confirmed) {
-        return;
-      }
-
-      try {
-        setLoading(true);
-
-        await api.delete(
-          `/api/Products/${product.id}/supplier/${supplierId}`
-        );
-
+      } else if (userId) {
         await loadProducts(
-          supplierId
+          userId,
+          true
         );
-      } catch (error) {
-        console.error(
-          "Failed to delete product:",
-          error
-        );
-
-        alert(
-          "Failed to delete product."
-        );
-      } finally {
-        setLoading(false);
       }
-    };
+    } catch (error) {
+      console.error(
+        "Failed to save product:",
+        error
+      );
 
-  /* =======================================================
-     RENDER
-  ======================================================= */
+      alert(
+        "Failed to save product. Please check the form and try again."
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  /**
+   * ------------------------------------------------------
+   * DELETE
+   * ------------------------------------------------------
+   *
+   * The backend delete endpoint currently requires the
+   * actual Supplier.Id. Therefore this operation requires
+   * supplierId, not merely userId.
+   */
+  const deleteProduct = async (
+    product: Product
+  ) => {
+    if (!supplierId) {
+      alert(
+        "Supplier ID was not found. Please log in again."
+      );
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Delete ${product.name}?`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      await api.delete(
+        `/api/Products/${product.id}/supplier/${supplierId}`
+      );
+
+      setProducts((prev) =>
+        prev.filter(
+          (item) =>
+            item.id !== product.id
+        )
+      );
+    } catch (error) {
+      console.error(
+        "Failed to delete product:",
+        error
+      );
+
+      alert(
+        "Failed to delete product."
+      );
+    }
+  };
+
+  /**
+   * ------------------------------------------------------
+   * CURRENCY
+   * ------------------------------------------------------
+   */
+
+  const formatMoney = (
+    value: number,
+    currency = "PHP"
+  ) => {
+    try {
+      return new Intl.NumberFormat(
+        "en-PH",
+        {
+          style: "currency",
+          currency,
+          maximumFractionDigits: 2,
+        }
+      ).format(value);
+    } catch {
+      return `₱${value.toFixed(2)}`;
+    }
+  };
+
+  const inventoryCurrency =
+    products.find(
+      (product) => product.currency
+    )?.currency || "PHP";
+
+  /**
+   * ------------------------------------------------------
+   * RENDER
+   * ------------------------------------------------------
+   */
 
   return (
     <main className="min-h-screen bg-slate-950 p-4 text-white md:p-8">
       <div className="mx-auto max-w-6xl space-y-6">
 
         {/* HEADER */}
+
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.3em] text-emerald-400">
             Provider Portal
@@ -1072,24 +679,21 @@ export default function ProviderInventoryPage() {
             Add, edit, or delete your products here.
           </p>
 
-          {/* DEVELOPMENT INFORMATION */}
-          {supplierId && (
-            <p className="mt-2 text-xs text-slate-500">
-              Supplier ID:{" "}
-              <span className="text-emerald-400">
-                {supplierId}
-              </span>
+          <div className="mt-3 space-y-1 text-xs text-slate-500">
+            <p>
+              User ID:{" "}
+              {userId || "not available"}
             </p>
-          )}
 
-          {!supplierId && (
-            <p className="mt-2 text-xs text-yellow-500">
-              Resolving supplier profile...
+            <p>
+              Supplier ID:{" "}
+              {supplierId || "resolved through user ID"}
             </p>
-          )}
+          </div>
         </div>
 
-        {/* SUMMARY CARDS */}
+        {/* SUMMARY */}
+
         <section className="grid gap-4 md:grid-cols-3">
 
           <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
@@ -1118,13 +722,17 @@ export default function ProviderInventoryPage() {
             </p>
 
             <p className="mt-2 text-3xl font-black">
-              ${totalInventoryValue.toFixed(2)}
+              {formatMoney(
+                totalInventoryValue,
+                inventoryCurrency
+              )}
             </p>
           </div>
 
         </section>
 
-        {/* ADD / EDIT PRODUCT */}
+        {/* ADD / EDIT */}
+
         <section className="rounded-3xl border border-white/10 bg-slate-900 p-5 shadow-xl">
 
           <h2 className="text-xl font-black">
@@ -1135,57 +743,55 @@ export default function ProviderInventoryPage() {
 
           <div className="mt-5 grid gap-4 md:grid-cols-2">
 
-            {/* PART NUMBER */}
             <input
-              className="rounded-xl border border-white/10 bg-slate-950 p-3 text-white outline-none placeholder:text-slate-500 focus:border-emerald-400"
+              className="rounded-xl border border-white/10 bg-slate-950 p-3 text-white outline-none focus:border-emerald-400"
               placeholder="Part Number"
               value={form.partNumber}
-              onChange={(event) =>
+              onChange={(e) =>
                 updateForm(
                   "partNumber",
-                  event.target.value
+                  e.target.value
                 )
               }
             />
 
-            {/* BRAND */}
             <input
-              className="rounded-xl border border-white/10 bg-slate-950 p-3 text-white outline-none placeholder:text-slate-500 focus:border-emerald-400"
+              className="rounded-xl border border-white/10 bg-slate-950 p-3 text-white outline-none focus:border-emerald-400"
               placeholder="Brand"
               value={form.brand}
-              onChange={(event) =>
+              onChange={(e) =>
                 updateForm(
                   "brand",
-                  event.target.value
+                  e.target.value
                 )
               }
             />
 
-            {/* NAME */}
             <input
-              className="rounded-xl border border-white/10 bg-slate-950 p-3 text-white outline-none placeholder:text-slate-500 focus:border-emerald-400 md:col-span-2"
+              className="rounded-xl border border-white/10 bg-slate-950 p-3 text-white outline-none focus:border-emerald-400 md:col-span-2"
               placeholder="Product Name"
               value={form.name}
-              onChange={(event) =>
+              onChange={(e) =>
                 updateForm(
                   "name",
-                  event.target.value
+                  e.target.value
                 )
               }
             />
 
             {/* IMAGE */}
+
             <div className="md:col-span-2">
 
               <input
                 type="file"
                 accept="image/*"
-                onChange={(event) =>
+                onChange={(e) =>
                   handleImageChange(
-                    event.target.files?.[0]
+                    e.target.files?.[0]
                   )
                 }
-                className="w-full rounded-xl border border-white/10 bg-slate-950 p-3 text-white file:mr-4 file:rounded-lg file:border-0 file:bg-emerald-500 file:px-4 file:py-2 file:font-bold file:text-black"
+                className="w-full rounded-xl border border-white/10 bg-slate-950 p-3 text-white"
               />
 
               {previewUrl && (
@@ -1205,39 +811,40 @@ export default function ProviderInventoryPage() {
             </div>
 
             {/* DESCRIPTION */}
+
             <textarea
-              className="min-h-28 rounded-xl border border-white/10 bg-slate-950 p-3 text-white outline-none placeholder:text-slate-500 focus:border-emerald-400 md:col-span-2"
+              className="min-h-28 rounded-xl border border-white/10 bg-slate-950 p-3 text-white outline-none focus:border-emerald-400 md:col-span-2"
               placeholder="Description"
-              value={
-                form.description
-              }
-              onChange={(event) =>
+              value={form.description}
+              onChange={(e) =>
                 updateForm(
                   "description",
-                  event.target.value
+                  e.target.value
                 )
               }
             />
 
             {/* PRICE */}
+
             <input
-              className="rounded-xl border border-white/10 bg-slate-950 p-3 text-white outline-none placeholder:text-slate-500 focus:border-emerald-400"
+              className="rounded-xl border border-white/10 bg-slate-950 p-3 text-white outline-none focus:border-emerald-400"
               type="number"
               min="0"
               step="0.01"
               placeholder="Price"
               value={form.price}
-              onChange={(event) =>
+              onChange={(e) =>
                 updateForm(
                   "price",
-                  event.target.value
+                  e.target.value
                 )
               }
             />
 
             {/* STOCK */}
+
             <input
-              className="rounded-xl border border-white/10 bg-slate-950 p-3 text-white outline-none placeholder:text-slate-500 focus:border-emerald-400"
+              className="rounded-xl border border-white/10 bg-slate-950 p-3 text-white outline-none focus:border-emerald-400"
               type="number"
               min="0"
               step="1"
@@ -1245,24 +852,22 @@ export default function ProviderInventoryPage() {
               value={
                 form.quantityAvailable
               }
-              onChange={(event) =>
+              onChange={(e) =>
                 updateForm(
                   "quantityAvailable",
-                  event.target.value
+                  e.target.value
                 )
               }
             />
 
           </div>
 
-          {/* BUTTONS */}
           <div className="mt-5 flex flex-col gap-3 md:flex-row">
 
             <button
-              type="button"
               onClick={submitProduct}
               disabled={
-                saving || !supplierId
+                saving || !ownerId
               }
               className="w-full rounded-xl bg-emerald-500 p-4 font-black text-black transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
             >
@@ -1275,8 +880,8 @@ export default function ProviderInventoryPage() {
 
             {editingProduct && (
               <button
-                type="button"
                 onClick={resetForm}
+                type="button"
                 className="w-full rounded-xl border border-white/10 p-4 font-black text-white transition hover:bg-white/10 md:w-52"
               >
                 Cancel
@@ -1288,6 +893,7 @@ export default function ProviderInventoryPage() {
         </section>
 
         {/* PRODUCTS */}
+
         <section className="rounded-3xl border border-white/10 bg-slate-900 p-5 shadow-xl">
 
           <div className="mb-5 flex items-center justify-between">
@@ -1297,16 +903,21 @@ export default function ProviderInventoryPage() {
             </h2>
 
             <button
-              type="button"
               onClick={() => {
                 if (supplierId) {
                   void loadProducts(
-                    supplierId
+                    supplierId,
+                    false
+                  );
+                } else if (userId) {
+                  void loadProducts(
+                    userId,
+                    true
                   );
                 }
               }}
               disabled={
-                loading || !supplierId
+                loading || !ownerId
               }
               className="rounded-xl border border-white/10 px-4 py-2 text-sm font-bold text-slate-300 hover:bg-white/10 disabled:opacity-60"
             >
@@ -1317,54 +928,48 @@ export default function ProviderInventoryPage() {
 
           </div>
 
-          {/* NO SUPPLIER */}
-          {!supplierId && (
-            <div className="rounded-xl border border-yellow-500/20 bg-yellow-500/10 p-4 text-yellow-300">
+          {/* NO ID */}
 
-              <p className="font-bold">
-                Resolving supplier profile...
-              </p>
-
-              <p className="mt-1 text-sm">
-                The system is connecting your
-                account to its supplier profile.
-              </p>
-
+          {!ownerId && (
+            <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-red-300">
+              Supplier account information was
+              not found. Please log out and log
+              in again.
             </div>
           )}
 
           {/* LOADING */}
-          {supplierId &&
-            loading &&
-            products.length === 0 && (
-              <div className="rounded-xl border border-white/10 bg-white/5 p-6 text-center text-slate-400">
-                Loading products...
-              </div>
-            )}
+
+          {loading && (
+            <div className="rounded-xl border border-white/10 bg-white/5 p-6 text-center text-slate-400">
+              Loading products...
+            </div>
+          )}
 
           {/* EMPTY */}
-          {supplierId &&
-            products.length === 0 &&
-            !loading && (
+
+          {ownerId &&
+            !loading &&
+            products.length === 0 && (
               <div className="rounded-xl border border-white/10 bg-white/5 p-6 text-center text-slate-400">
                 No products yet.
               </div>
             )}
 
-          {/* PRODUCT CARDS */}
+          {/* PRODUCT GRID */}
+
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
 
             {products.map(
               (product) => (
-
                 <article
                   key={product.id}
                   className="overflow-hidden rounded-2xl border border-white/10 bg-slate-950"
                 >
 
                   {/* IMAGE */}
-                  {product.imageUrl ? (
 
+                  {product.imageUrl ? (
                     <div className="relative h-44 w-full">
 
                       <Image
@@ -1380,18 +985,22 @@ export default function ProviderInventoryPage() {
                       />
 
                     </div>
-
                   ) : (
-
                     <div className="flex h-44 items-center justify-center bg-white/5 text-slate-500">
                       No Image
                     </div>
-
                   )}
 
                   <div className="space-y-2 p-4">
 
-                    {/* PART NUMBER */}
+                    <p className="text-xs uppercase tracking-[0.2em] text-emerald-400">
+                      {product.brand}
+                    </p>
+
+                    <h3 className="text-lg font-black">
+                      {product.name}
+                    </h3>
+
                     {product.partNumber && (
                       <p className="text-xs text-slate-500">
                         Part #:{" "}
@@ -1399,17 +1008,6 @@ export default function ProviderInventoryPage() {
                       </p>
                     )}
 
-                    {/* BRAND */}
-                    <p className="text-xs uppercase tracking-[0.2em] text-emerald-400">
-                      {product.brand}
-                    </p>
-
-                    {/* NAME */}
-                    <h3 className="text-lg font-black">
-                      {product.name}
-                    </h3>
-
-                    {/* DESCRIPTION */}
                     {product.description && (
                       <p className="line-clamp-2 text-sm text-slate-400">
                         {
@@ -1418,32 +1016,30 @@ export default function ProviderInventoryPage() {
                       </p>
                     )}
 
-                    {/* PRICE / STOCK */}
                     <div className="flex items-center justify-between pt-3">
 
                       <p className="text-xl font-black text-emerald-400">
-                        $
-                        {Number(
-                          product.price ||
-                            0
-                        ).toFixed(2)}
+                        {formatMoney(
+                          Number(
+                            product.price
+                          ),
+                          product.currency ||
+                            "PHP"
+                        )}
                       </p>
 
                       <p className="rounded-full bg-white/10 px-3 py-1 text-sm text-slate-300">
                         Stock:{" "}
-                        {Number(
-                          product.quantityAvailable ||
-                            0
-                        )}
+                        {
+                          product.quantityAvailable
+                        }
                       </p>
 
                     </div>
 
-                    {/* ACTIONS */}
                     <div className="grid grid-cols-2 gap-3 pt-4">
 
                       <button
-                        type="button"
                         onClick={() =>
                           startEdit(
                             product
@@ -1455,16 +1051,12 @@ export default function ProviderInventoryPage() {
                       </button>
 
                       <button
-                        type="button"
                         onClick={() =>
                           void deleteProduct(
                             product
                           )
                         }
-                        disabled={
-                          loading
-                        }
-                        className="rounded-xl bg-red-500 px-4 py-2 font-bold text-white hover:bg-red-400 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="rounded-xl bg-red-500 px-4 py-2 font-bold text-white hover:bg-red-400"
                       >
                         Delete
                       </button>
