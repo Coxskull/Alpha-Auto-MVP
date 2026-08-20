@@ -69,28 +69,54 @@ export default function ProviderInventoryPage() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const loadProducts = useCallback(async (id: string) => {
-    setLoading(true);
+  const fetchProducts = useCallback(async (id: string): Promise<Product[]> => {
+  const res = await api.get<Product[]>(
+    `/api/Products/supplier/${id}`
+  );
 
-    try {
-      const res = await api.get<Product[]>(`/api/Products/supplier/${id}`);
-      setProducts(res.data);
-    } catch (error) {
-      console.error("Failed to load products:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  return res.data;
+}, []);
 
- useEffect(() => {
+const loadProducts = useCallback(async (id: string) => {
+  setLoading(true);
+
+  try {
+    const data = await fetchProducts(id);
+    setProducts(data);
+  } catch (error) {
+    console.error("Failed to load products:", error);
+  } finally {
+    setLoading(false);
+  }
+}, [fetchProducts]);
+
+useEffect(() => {
   if (!supplierId) return;
 
   localStorage.setItem("supplierId", supplierId);
 
-  queueMicrotask(() => {
-    void loadProducts(supplierId);
-  });
-}, [supplierId, loadProducts]);
+  let cancelled = false;
+
+  const initializeProducts = async () => {
+    try {
+      const data = await fetchProducts(supplierId);
+
+      if (!cancelled) {
+        setProducts(data);
+      }
+    } catch (error) {
+      if (!cancelled) {
+        console.error("Failed to load products:", error);
+      }
+    }
+  };
+
+  void initializeProducts();
+
+  return () => {
+    cancelled = true;
+  };
+}, [supplierId, fetchProducts]);
 
   const totalInventoryValue = useMemo(() => {
     return products.reduce((sum, product) => {
@@ -105,19 +131,27 @@ export default function ProviderInventoryPage() {
     }));
   };
 
-  const handleImageChange = (file?: File) => {
-    if (!file) return;
+ const handleImageChange = (file?: File) => {
+  if (!file) return;
 
-    setSelectedImage(file);
-    setPreviewUrl(URL.createObjectURL(file));
-  };
+  if (previewUrl?.startsWith("blob:")) {
+    URL.revokeObjectURL(previewUrl);
+  }
 
-  const resetForm = () => {
-    setForm(initialForm);
-    setEditingProduct(null);
-    setSelectedImage(null);
-    setPreviewUrl(null);
-  };
+  setSelectedImage(file);
+  setPreviewUrl(URL.createObjectURL(file));
+};
+
+ const resetForm = () => {
+  if (previewUrl?.startsWith("blob:")) {
+    URL.revokeObjectURL(previewUrl);
+  }
+
+  setForm(initialForm);
+  setEditingProduct(null);
+  setSelectedImage(null);
+  setPreviewUrl(null);
+};
 
   const startEdit = (product: Product) => {
     setEditingProduct(product);
@@ -135,82 +169,124 @@ export default function ProviderInventoryPage() {
   };
 
   const submitProduct = async () => {
-    if (!supplierId) {
-      alert("Supplier ID not found. Please login again.");
-      return;
+  if (!supplierId) {
+    alert("Supplier ID not found. Please login again.");
+    return;
+  }
+
+  if (!form.name.trim()) {
+    alert("Product name is required.");
+    return;
+  }
+
+  if (!form.brand.trim()) {
+    alert("Brand is required.");
+    return;
+  }
+
+  const price = Number(form.price);
+  const quantityAvailable = Number(form.quantityAvailable);
+
+  if (!Number.isFinite(price) || price <= 0) {
+    alert("Price must be greater than 0.");
+    return;
+  }
+
+  if (!Number.isInteger(quantityAvailable) || quantityAvailable < 0) {
+    alert("Stock quantity must be a whole number and cannot be negative.");
+    return;
+  }
+
+  setSaving(true);
+
+  try {
+    const data = new FormData();
+
+    // IMPORTANT:
+    // Do NOT use user.id here.
+    data.append("SupplierId", supplierId);
+
+    data.append("PartNumber", form.partNumber.trim());
+    data.append("Brand", form.brand.trim());
+    data.append("Name", form.name.trim());
+    data.append("Description", form.description.trim());
+    data.append("Price", String(price));
+    data.append("QuantityAvailable", String(quantityAvailable));
+
+    // Backend already has defaults, but sending these explicitly
+    // makes the request predictable.
+    data.append("Currency", "MXN");
+    data.append("CountryCode", "MX");
+
+    if (selectedImage) {
+      data.append("Image", selectedImage);
     }
 
-    if (!form.name.trim()) {
-      alert("Product name is required.");
-      return;
+    if (editingProduct) {
+      await api.put(
+        `/api/Products/${editingProduct.id}`,
+        data
+      );
+    } else {
+      await api.post(
+        "/api/Products/upload",
+        data
+      );
     }
 
-    if (!form.brand.trim()) {
-      alert("Brand is required.");
-      return;
+    resetForm();
+
+    await loadProducts(supplierId);
+
+    alert(
+      editingProduct
+        ? "Product updated successfully."
+        : "Product added successfully."
+    );
+  } catch (error: unknown) {
+    console.error("Failed to save product:", error);
+
+    const axiosError = error as {
+      response?: {
+        status?: number;
+        data?: {
+          message?: string;
+          title?: string;
+          detail?: string;
+        } | string;
+      };
+      message?: string;
+    };
+
+    const status = axiosError.response?.status;
+    const responseData = axiosError.response?.data;
+
+    console.error("Status:", status);
+    console.error("Response:", responseData);
+
+    let message = "Failed to save product.";
+
+    if (typeof responseData === "string") {
+      message = responseData;
+    } else if (responseData) {
+      message =
+        responseData.message ||
+        responseData.title ||
+        responseData.detail ||
+        message;
+    } else if (axiosError.message) {
+      message = axiosError.message;
     }
 
-    const price = Number(form.price);
-    const quantityAvailable = Number(form.quantityAvailable);
-
-    if (price <= 0) {
-      alert("Price must be greater than 0.");
-      return;
-    }
-
-    if (quantityAvailable < 0) {
-      alert("Stock cannot be negative.");
-      return;
-    }
-
-    setSaving(true);
-
-    try {
-      const data = new FormData();
-
-      data.append("SupplierId", supplierId);
-      data.append("PartNumber", form.partNumber);
-      data.append("Brand", form.brand);
-      data.append("Name", form.name);
-      data.append("Description", form.description);
-      data.append("Price", String(price));
-      data.append("QuantityAvailable", String(quantityAvailable));
-
-      if (selectedImage) {
-        data.append("Image", selectedImage);
-      }
-
-      if (editingProduct) {
-        await api.put(`/api/Products/${editingProduct.id}`, data);
-      } else {
-        await api.post("/api/Products/upload", data);
-      }
-
-      resetForm();
-      await loadProducts(supplierId);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
-  console.error("Failed to save product:", error);
-
-  const status = error?.response?.status;
-  const data = error?.response?.data;
-
-  console.error("Status:", status);
-  console.error("Response:", data);
-
-  const message =
-    data?.message ||
-    data?.title ||
-    data?.detail ||
-    (typeof data === "string" ? data : null) ||
-    error?.message ||
-    "Failed to save product.";
-
-  alert(`Failed to save product${status ? ` (${status})` : ""}:\n${message}`);
-} finally {
-  setSaving(false);
-}
-  };
+    alert(
+      `Failed to save product${
+        status ? ` (${status})` : ""
+      }:\n${message}`
+    );
+  } finally {
+    setSaving(false);
+  }
+};
 
  const deleteProduct = async (product: Product) => {
   if (!supplierId) return;
