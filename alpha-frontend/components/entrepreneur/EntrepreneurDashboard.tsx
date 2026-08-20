@@ -73,39 +73,46 @@ export default function EntrepreneurDashboard() {
 }
 
 useEffect(() => {
-  let cancelled = false;
+    let cancelled = false;
 
-  async function fetchDashboard() {
-    try {
-      const result = await getEntrepreneurDashboard();
+    async function fetchDashboard() {
+        try {
+            setLoading(true);
+            setError("");
 
-      if (cancelled) return;
+            const result =
+                await getEntrepreneurDashboard();
 
-      setDashboard(result);
-      setError("");
-    } catch (error) {
-      if (cancelled) return;
+            if (cancelled) {
+                return;
+            }
 
-      console.error(
-        "Failed to load entrepreneur dashboard",
-        error
-      );
+            setDashboard(result);
+        } catch (error) {
+            if (cancelled) {
+                return;
+            }
 
-      setError(
-        "Unable to load Entrepreneur Network dashboard."
-      );
-    } finally {
-      if (!cancelled) {
-        setLoading(false);
-      }
+            console.error(
+                "Failed to load entrepreneur dashboard",
+                error
+            );
+
+            setError(
+                "Unable to load Entrepreneur Network dashboard."
+            );
+        } finally {
+            if (!cancelled) {
+                setLoading(false);
+            }
+        }
     }
-  }
 
-  void fetchDashboard();
+    void fetchDashboard();
 
-  return () => {
-    cancelled = true;
-  };
+    return () => {
+        cancelled = true;
+    };
 }, []);
 
   async function copyReferralLink() {
