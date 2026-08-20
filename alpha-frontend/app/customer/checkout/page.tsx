@@ -385,8 +385,19 @@ useEffect(() => {
           "Order was created but no order ID was returned."
         );
       }
+if (gateway === "cash") {
+    clearCart();
 
-     const payment = await createPayment({
+    setCart([]);
+
+    router.push(
+        `/customer/orders/${orderId}`
+    );
+
+    return;
+}
+
+const payment = await createPayment({
     orderId,
     gateway
 });
@@ -398,18 +409,14 @@ if (!payment.success) {
     );
 }
 
-if (gateway !== "cash") {
-    if (!payment.checkoutUrl) {
-        throw new Error(
-            "Payment gateway did not return a checkout URL."
-        );
-    }
-
-    window.location.href =
-        payment.checkoutUrl;
-
-    return;
+if (!payment.checkoutUrl) {
+    throw new Error(
+        "Payment gateway did not return a checkout URL."
+    );
 }
+
+window.location.href =
+    payment.checkoutUrl;
 
 clearCart();
 

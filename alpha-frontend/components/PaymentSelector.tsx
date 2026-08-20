@@ -102,7 +102,20 @@ export default function PaymentSelector({
                     PayPal
                 </span>
             </label>
+<label className="flex items-center gap-3">
+    <input
+        type="radio"
+        value="cash"
+        checked={value === "cash"}
+        onChange={(e) =>
+            onChange(e.target.value)
+        }
+    />
 
+    <span>
+        Cash on Delivery
+    </span>
+</label>
         </div>
     );
 }

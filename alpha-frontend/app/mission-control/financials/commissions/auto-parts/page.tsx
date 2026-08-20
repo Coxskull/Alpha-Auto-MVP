@@ -14,7 +14,22 @@ import type {
   CommissionTier,
 } from "./types/autoPartsCommission";
 
-const CURRENCY = "USD";
+/* =============================================================
+   CONFIGURATION
+============================================================= */
+
+/**
+ * Currency used by the Auto Parts Commission policy.
+ *
+ * Change this to "PHP", "MXN", or "USD" if your backend policy
+ * uses a different currency.
+ */
+const CURRENCY = "USD" as const;
+
+
+/* =============================================================
+   PAGE
+============================================================= */
 
 export default function AutoPartsCommissionPage() {
   const [policy, setPolicy] =
@@ -35,9 +50,49 @@ export default function AutoPartsCommissionPage() {
   const [saving, setSaving] =
     useState(false);
 
-  // ============================================================
-  // LOAD POLICY
-  // ============================================================
+
+  /* ============================================================
+     INITIAL LOAD
+  ============================================================ */
+
+  useEffect(() => {
+  let cancelled = false;
+
+  getCurrentPolicy(CURRENCY)
+    .then((result) => {
+      if (cancelled) return;
+
+      setPolicy(result);
+      setError(null);
+    })
+    .catch((err: unknown) => {
+      if (cancelled) return;
+
+      console.error(
+        "Failed to load commission policy:",
+        err
+      );
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to load commission policy."
+      );
+    })
+    .finally(() => {
+      if (cancelled) return;
+
+      setLoading(false);
+    });
+
+  return () => {
+    cancelled = true;
+  };
+}, []);
+
+  /* ============================================================
+     LOAD POLICY
+  ============================================================ */
 
   async function loadPolicy() {
     try {
@@ -47,7 +102,7 @@ export default function AutoPartsCommissionPage() {
         await getCurrentPolicy(CURRENCY);
 
       setPolicy(result);
-    } catch (err) {
+    } catch (err: unknown) {
       console.error(
         "Failed to load commission policy:",
         err
@@ -61,54 +116,10 @@ export default function AutoPartsCommissionPage() {
     }
   }
 
-  // ============================================================
-  // INITIAL LOAD
-  // ============================================================
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function fetchPolicy() {
-      try {
-        setLoading(true);
-        setError(null);
-
-        const result =
-          await getCurrentPolicy(CURRENCY);
-
-        if (cancelled) return;
-
-        setPolicy(result);
-      } catch (err) {
-        if (cancelled) return;
-
-        console.error(
-          "Failed to load commission policy:",
-          err
-        );
-
-        setError(
-          err instanceof Error
-            ? err.message
-            : "Failed to load commission policy."
-        );
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    }
-
-    fetchPolicy();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  // ============================================================
-  // ADD TIER
-  // ============================================================
+  /* ============================================================
+     ADD TIER
+  ============================================================ */
 
   function handleAddTier() {
     if (!policy) {
@@ -135,11 +146,8 @@ export default function AutoPartsCommissionPage() {
         : null;
 
     /*
-     * If the last tier is currently unlimited,
-     * we cannot simply create another tier after it.
-     *
-     * Instead, tell the user to edit the current
-     * unlimited tier first.
+     * If the last tier is unlimited, another tier
+     * cannot be inserted after it.
      */
     if (
       lastTier &&
@@ -171,20 +179,25 @@ export default function AutoPartsCommissionPage() {
     setShowTierEditor(true);
   }
 
-  // ============================================================
-  // EDIT TIER
-  // ============================================================
+
+  /* ============================================================
+     EDIT TIER
+  ============================================================ */
 
   function handleEditTier(
     tier: CommissionTier
   ) {
-    setEditingTier(tier);
+    setEditingTier({
+      ...tier,
+    });
+
     setShowTierEditor(true);
   }
 
-  // ============================================================
-  // DELETE / DEACTIVATE TIER
-  // ============================================================
+
+  /* ============================================================
+     DELETE / DEACTIVATE TIER
+  ============================================================ */
 
   async function handleDeleteTier(
     tier: CommissionTier
@@ -212,7 +225,7 @@ export default function AutoPartsCommissionPage() {
       await deleteTier(tier.id);
 
       await loadPolicy();
-    } catch (err) {
+    } catch (err: unknown) {
       console.error(
         "Failed to delete commission tier:",
         err
@@ -228,20 +241,24 @@ export default function AutoPartsCommissionPage() {
     }
   }
 
-  // ============================================================
-  // CLOSE EDITOR
-  // ============================================================
+
+  /* ============================================================
+     CLOSE EDITOR
+  ============================================================ */
 
   function handleCloseEditor() {
-    if (saving) return;
+    if (saving) {
+      return;
+    }
 
     setShowTierEditor(false);
     setEditingTier(null);
   }
 
-  // ============================================================
-  // SAVE TIER
-  // ============================================================
+
+  /* ============================================================
+     SAVE TIER
+  ============================================================ */
 
   async function handleSaveTier(
     tier: CommissionTier
@@ -257,9 +274,9 @@ export default function AutoPartsCommissionPage() {
     try {
       setSaving(true);
 
-      // ========================================================
-      // UPDATE EXISTING TIER
-      // ========================================================
+      /* ========================================================
+         UPDATE EXISTING TIER
+      ======================================================== */
 
       if (tier.id) {
         await updateTier(tier.id, {
@@ -277,9 +294,9 @@ export default function AutoPartsCommissionPage() {
         });
       }
 
-      // ========================================================
-      // CREATE NEW TIER
-      // ========================================================
+      /* ========================================================
+         CREATE NEW TIER
+      ======================================================== */
 
       else {
         await createTier(policy.id, {
@@ -301,7 +318,7 @@ export default function AutoPartsCommissionPage() {
       setEditingTier(null);
 
       await loadPolicy();
-    } catch (err) {
+    } catch (err: unknown) {
       console.error(
         "Failed to save commission tier:",
         err
@@ -317,9 +334,10 @@ export default function AutoPartsCommissionPage() {
     }
   }
 
-  // ============================================================
-  // LOADING
-  // ============================================================
+
+  /* ============================================================
+     LOADING
+  ============================================================ */
 
   if (loading) {
     return (
@@ -331,9 +349,10 @@ export default function AutoPartsCommissionPage() {
     );
   }
 
-  // ============================================================
-  // ERROR
-  // ============================================================
+
+  /* ============================================================
+     ERROR
+  ============================================================ */
 
   if (error) {
     return (
@@ -348,8 +367,11 @@ export default function AutoPartsCommissionPage() {
 
         <button
           type="button"
-          onClick={loadPolicy}
-          className="mt-4 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+          onClick={() => {
+            void loadPolicy();
+          }}
+          disabled={saving}
+          className="mt-4 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           Retry
         </button>
@@ -357,9 +379,10 @@ export default function AutoPartsCommissionPage() {
     );
   }
 
-  // ============================================================
-  // NO POLICY
-  // ============================================================
+
+  /* ============================================================
+     NO POLICY
+  ============================================================ */
 
   if (!policy) {
     return (
@@ -371,9 +394,10 @@ export default function AutoPartsCommissionPage() {
     );
   }
 
-  // ============================================================
-  // PAGE
-  // ============================================================
+
+  /* ============================================================
+     PAGE
+  ============================================================ */
 
   return (
     <>
@@ -397,7 +421,9 @@ export default function AutoPartsCommissionPage() {
 
           <button
             type="button"
-            onClick={loadPolicy}
+            onClick={() => {
+              void loadPolicy();
+            }}
             disabled={saving}
             className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
           >
@@ -405,6 +431,7 @@ export default function AutoPartsCommissionPage() {
           </button>
 
         </div>
+
 
         {/* ======================================================
             POLICY SUMMARY
@@ -446,6 +473,7 @@ export default function AutoPartsCommissionPage() {
 
         </div>
 
+
         {/* ======================================================
             COMMISSION TIERS
         ====================================================== */}
@@ -459,6 +487,7 @@ export default function AutoPartsCommissionPage() {
         />
 
       </div>
+
 
       {/* ========================================================
           TIER EDITOR MODAL
@@ -525,8 +554,6 @@ function TierTable({
             </p>
           </div>
 
-          {/* ADD BUTTON */}
-
           <button
             type="button"
             onClick={onAdd}
@@ -539,6 +566,7 @@ function TierTable({
         </div>
 
       </div>
+
 
       {/* ========================================================
           TABLE
@@ -601,7 +629,7 @@ function TierTable({
 
                 <tr
                   key={
-                    tier.id ??
+                    tier.id ||
                     `new-${tier.tierOrder}`
                   }
                   className="text-sm hover:bg-gray-50"
@@ -613,6 +641,7 @@ function TierTable({
                     Tier {tier.tierOrder}
                   </td>
 
+
                   {/* MINIMUM */}
 
                   <td className="px-6 py-4 text-gray-700">
@@ -620,6 +649,7 @@ function TierTable({
                       tier.minimumAmount
                     )}
                   </td>
+
 
                   {/* MAXIMUM */}
 
@@ -633,11 +663,13 @@ function TierTable({
 
                   </td>
 
+
                   {/* COMMISSION */}
 
                   <td className="px-6 py-4 font-semibold text-gray-900">
                     {tier.commissionPercentage}%
                   </td>
+
 
                   {/* STATUS */}
 
@@ -657,6 +689,7 @@ function TierTable({
 
                   </td>
 
+
                   {/* ACTIONS */}
 
                   <td className="px-6 py-4">
@@ -675,6 +708,7 @@ function TierTable({
                       >
                         Edit
                       </button>
+
 
                       {/* DELETE */}
 
@@ -739,9 +773,10 @@ function TierEditor({
       tier.maximumAmount == null
     );
 
-  // ============================================================
-  // UPDATE FORM
-  // ============================================================
+
+  /* ============================================================
+     UPDATE FORM
+  ============================================================ */
 
   function updateForm(
     changes: Partial<CommissionTier>
@@ -752,18 +787,20 @@ function TierEditor({
     }));
   }
 
-  // ============================================================
-  // SUBMIT
-  // ============================================================
+
+  /* ============================================================
+     SUBMIT
+  ============================================================ */
 
   function handleSubmit(
     event: React.FormEvent<HTMLFormElement>
   ) {
     event.preventDefault();
 
-    // ----------------------------------------------------------
-    // MINIMUM
-    // ----------------------------------------------------------
+
+    /* ----------------------------------------------------------
+       MINIMUM
+    ---------------------------------------------------------- */
 
     if (
       !Number.isFinite(
@@ -778,9 +815,10 @@ function TierEditor({
       return;
     }
 
-    // ----------------------------------------------------------
-    // COMMISSION
-    // ----------------------------------------------------------
+
+    /* ----------------------------------------------------------
+       COMMISSION
+    ---------------------------------------------------------- */
 
     if (
       !Number.isFinite(
@@ -796,9 +834,10 @@ function TierEditor({
       return;
     }
 
-    // ----------------------------------------------------------
-    // MAXIMUM
-    // ----------------------------------------------------------
+
+    /* ----------------------------------------------------------
+       MAXIMUM
+    ---------------------------------------------------------- */
 
     if (!isAbove) {
 
@@ -827,9 +866,10 @@ function TierEditor({
       }
     }
 
-    // ----------------------------------------------------------
-    // SAVE
-    // ----------------------------------------------------------
+
+    /* ----------------------------------------------------------
+       SAVE
+    ---------------------------------------------------------- */
 
     onSave({
       ...form,
@@ -841,8 +881,10 @@ function TierEditor({
     });
   }
 
+
   const isNewTier =
     !tier.id;
+
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
@@ -886,6 +928,7 @@ function TierEditor({
           </div>
 
         </div>
+
 
         {/* ====================================================
             FORM
@@ -933,6 +976,7 @@ function TierEditor({
 
           </div>
 
+
           {/* ==================================================
               MAXIMUM
           ================================================== */}
@@ -954,8 +998,7 @@ function TierEditor({
               value={
                 isAbove
                   ? ""
-                  : form.maximumAmount ??
-                    ""
+                  : form.maximumAmount ?? ""
               }
               onChange={(event) =>
                 updateForm({
@@ -993,6 +1036,7 @@ function TierEditor({
             </label>
 
           </div>
+
 
           {/* ==================================================
               COMMISSION
@@ -1040,6 +1084,7 @@ function TierEditor({
 
           </div>
 
+
           {/* ==================================================
               STATUS
           ================================================== */}
@@ -1078,6 +1123,7 @@ function TierEditor({
             </select>
 
           </div>
+
 
           {/* ==================================================
               ACTIONS
