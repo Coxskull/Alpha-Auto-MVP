@@ -32,18 +32,6 @@ type SupplierProductsResponse = {
   products: Product[];
 };
 
-type ApiError = {
-  response?: {
-    status?: number;
-    data?: {
-      message?: string;
-      title?: string;
-      detail?: string;
-    } | string;
-  };
-  message?: string;
-};
-
 const initialForm: ProductForm = {
   partNumber: "",
   brand: "",
@@ -53,6 +41,18 @@ const initialForm: ProductForm = {
   quantityAvailable: "",
 };
 
+/**
+ * Gets the logged-in Alpha user ID.
+ *
+ * This is NOT the supplier ID.
+ * We use this to call:
+ *
+ * /api/Products/supplier/user/{userId}
+ *
+ * The backend then finds:
+ *
+ * user_id -> Suppliers.Id
+ */
 function getUserId(): string | null {
   if (typeof window === "undefined") {
     return null;
@@ -67,123 +67,119 @@ function getUserId(): string | null {
   try {
     const user = JSON.parse(alphaUser);
 
-    return (
-      user.id ||
-      user.Id ||
-      user.user_id ||
-      user.userId ||
-      null
-    );
-  } catch {
+    const id =
+      user.id ??
+      user.Id ??
+      user.user_id ??
+      user.userId ??
+      null;
+
+    if (!id) {
+      return null;
+    }
+
+    return String(id);
+  } catch (error) {
+    console.error("Failed to parse alpha_user:", error);
     return null;
   }
-}
-
-function getStoredSupplierId(): string | null {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
-  const supplierId = localStorage.getItem("supplierId");
-
-  if (!supplierId?.trim()) {
-    return null;
-  }
-
-  return supplierId.trim();
 }
 
 export default function ProviderInventoryPage() {
-  /*
-   * The logged-in user's ID is NOT the same as the supplier ID.
-   */
   const [userId] = useState<string | null>(() => getUserId());
 
-  /*
-   * We may already have the supplier ID cached from a previous visit.
+  /**
+   * This is the REAL supplier ID returned by the backend.
+   *
+   * Example:
+   *
+   * userId:
+   * d6a50a2d-259d-4dcb-826e-9faca287615a
+   *
+   * supplierId:
+   * ea433cf3-7fac-4cf4-aae5-b7eae2f1158b
    */
-  const [supplierId, setSupplierId] = useState<string | null>(
-    () => getStoredSupplierId()
-  );
+  const [supplierId, setSupplierId] = useState<string | null>(null);
 
   const [products, setProducts] = useState<Product[]>([]);
   const [form, setForm] = useState<ProductForm>(initialForm);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
-  const [selectedImage, setSelectedImage] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [editingProduct, setEditingProduct] =
+    useState<Product | null>(null);
+
+  const [selectedImage, setSelectedImage] =
+    useState<File | null>(null);
+
+  const [previewUrl, setPreviewUrl] =
+    useState<string | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  /*
-   * Resolve:
+  /**
+   * Load products using the logged-in USER ID.
    *
-   * alpha_user.id
-   *      ↓
-   * suppliers.user_id
-   *      ↓
-   * suppliers.Id
-   */
-  const resolveSupplier = useCallback(async (id: string) => {
-    try {
-      const response = await api.get<SupplierProductsResponse>(
-        `/api/Products/supplier/user/${id}`
-      );
-
-      const resolvedSupplierId = response.data.supplierId;
-
-      if (!resolvedSupplierId) {
-        throw new Error("Supplier ID was not returned by the server.");
-      }
-
-      localStorage.setItem("supplierId", resolvedSupplierId);
-
-      return response.data;
-    } catch (error) {
-      console.error("Failed to resolve supplier:", error);
-      throw error;
-    }
-  }, []);
-
-  /*
-   * Load products using the REAL supplier ID.
+   * Backend converts:
+   *
+   * user ID -> supplier ID -> products
    */
   const loadProducts = useCallback(async (id: string) => {
     setLoading(true);
 
     try {
-      const response = await api.get<Product[]>(
-        `/api/Products/supplier/${id}`
+      const response =
+        await api.get<SupplierProductsResponse>(
+          `/api/Products/supplier/user/${id}`
+        );
+
+      const returnedSupplierId = response.data.supplierId;
+      const returnedProducts = response.data.products ?? [];
+
+      console.log("Supplier ID:", returnedSupplierId);
+      console.log("Products:", returnedProducts);
+
+      setSupplierId(returnedSupplierId);
+      setProducts(returnedProducts);
+
+      // Keep supplier ID locally so subsequent requests can use it.
+      localStorage.setItem(
+        "supplierId",
+        returnedSupplierId
+      );
+    } catch (error: unknown) {
+      console.error(
+        "Failed to load supplier products:",
+        error
       );
 
-      setProducts(response.data);
-    } catch (error) {
-      console.error("Failed to load products:", error);
-
-      const apiError = error as ApiError;
+      const axiosError = error as {
+        response?: {
+          status?: number;
+          data?: unknown;
+        };
+        message?: string;
+      };
 
       console.error(
-        "Products load status:",
-        apiError.response?.status
+        "Status:",
+        axiosError.response?.status
       );
 
       console.error(
-        "Products load response:",
-        apiError.response?.data
+        "Response:",
+        axiosError.response?.data
       );
-
-      setProducts([]);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  /*
-   * Initial supplier/product loading.
+  /**
+   * Initial product loading.
    *
-   * The timeout prevents the React hooks ESLint rule from
-   * treating the state updates as synchronous effect updates.
+   * setTimeout prevents the React Hooks
+   * set-state-in-effect warning while still
+   * loading immediately after mount.
    */
   useEffect(() => {
     if (!userId) {
@@ -191,42 +187,17 @@ export default function ProviderInventoryPage() {
     }
 
     const timer = window.setTimeout(() => {
-      void (async () => {
-        try {
-          /*
-           * If we already have a supplier ID, use it.
-           */
-          if (supplierId) {
-            await loadProducts(supplierId);
-            return;
-          }
-
-          /*
-           * Otherwise resolve user ID → supplier ID.
-           */
-          const result = await resolveSupplier(userId);
-
-          setSupplierId(result.supplierId);
-          setProducts(result.products);
-        } catch (error) {
-          console.error(
-            "Failed to initialize provider inventory:",
-            error
-          );
-        }
-      })();
+      void loadProducts(userId);
     }, 0);
 
     return () => {
       window.clearTimeout(timer);
     };
-  }, [
-    userId,
-    supplierId,
-    loadProducts,
-    resolveSupplier,
-  ]);
+  }, [userId, loadProducts]);
 
+  /**
+   * Inventory value.
+   */
   const totalInventoryValue = useMemo(() => {
     return products.reduce((sum, product) => {
       return (
@@ -237,24 +208,22 @@ export default function ProviderInventoryPage() {
     }, 0);
   }, [products]);
 
-  const totalStock = useMemo(() => {
-    return products.reduce(
-      (sum, product) =>
-        sum + Number(product.quantityAvailable),
-      0
-    );
-  }, [products]);
-
+  /**
+   * Update form field.
+   */
   const updateForm = (
     field: keyof ProductForm,
     value: string
   ) => {
-    setForm((previous) => ({
-      ...previous,
+    setForm((prev) => ({
+      ...prev,
       [field]: value,
     }));
   };
 
+  /**
+   * Handle image selection.
+   */
   const handleImageChange = (file?: File) => {
     if (!file) {
       return;
@@ -265,9 +234,15 @@ export default function ProviderInventoryPage() {
     }
 
     setSelectedImage(file);
-    setPreviewUrl(URL.createObjectURL(file));
+
+    const newPreviewUrl = URL.createObjectURL(file);
+
+    setPreviewUrl(newPreviewUrl);
   };
 
+  /**
+   * Reset form.
+   */
   const resetForm = () => {
     if (previewUrl?.startsWith("blob:")) {
       URL.revokeObjectURL(previewUrl);
@@ -279,22 +254,26 @@ export default function ProviderInventoryPage() {
     setPreviewUrl(null);
   };
 
+  /**
+   * Start editing a product.
+   */
   const startEdit = (product: Product) => {
     setEditingProduct(product);
 
     setForm({
-      partNumber: product.partNumber || "",
-      brand: product.brand || "",
-      name: product.name || "",
-      description: product.description || "",
-      price: String(product.price),
+      partNumber: product.partNumber ?? "",
+      brand: product.brand ?? "",
+      name: product.name ?? "",
+      description: product.description ?? "",
+      price: String(product.price ?? ""),
       quantityAvailable: String(
-        product.quantityAvailable
+        product.quantityAvailable ?? ""
       ),
     });
 
     setSelectedImage(null);
-    setPreviewUrl(product.imageUrl || null);
+
+    setPreviewUrl(product.imageUrl ?? null);
 
     window.scrollTo({
       top: 0,
@@ -302,13 +281,13 @@ export default function ProviderInventoryPage() {
     });
   };
 
+  /**
+   * Add or update product.
+   */
   const submitProduct = async () => {
-    /*
-     * supplierId must be the ID from suppliers.Id.
-     */
     if (!supplierId) {
       alert(
-        "Supplier profile not found. Please login again."
+        "Supplier ID not found. Please refresh the page or login again."
       );
       return;
     }
@@ -348,12 +327,16 @@ export default function ProviderInventoryPage() {
     try {
       const data = new FormData();
 
-      /*
+      /**
        * IMPORTANT:
        *
-       * This MUST be suppliers.Id.
+       * This MUST be the supplier ID.
        *
-       * Do NOT send userId here.
+       * NOT:
+       * userId
+       *
+       * NOT:
+       * user.id
        */
       data.append("SupplierId", supplierId);
 
@@ -362,16 +345,25 @@ export default function ProviderInventoryPage() {
         form.partNumber.trim()
       );
 
-      data.append("Brand", form.brand.trim());
+      data.append(
+        "Brand",
+        form.brand.trim()
+      );
 
-      data.append("Name", form.name.trim());
+      data.append(
+        "Name",
+        form.name.trim()
+      );
 
       data.append(
         "Description",
         form.description.trim()
       );
 
-      data.append("Price", String(price));
+      data.append(
+        "Price",
+        String(price)
+      );
 
       data.append(
         "QuantityAvailable",
@@ -385,36 +377,58 @@ export default function ProviderInventoryPage() {
         data.append("Image", selectedImage);
       }
 
-      /*
-       * EDIT
-       */
+      let savedProduct: Product;
+
       if (editingProduct) {
-        await api.put(
-          `/api/Products/${editingProduct.id}`,
-          data
+        const response =
+          await api.put<Product>(
+            `/api/Products/${editingProduct.id}`,
+            data
+          );
+
+        savedProduct = response.data;
+
+        /**
+         * Immediately update the card.
+         */
+        setProducts((prev) =>
+          prev.map((product) =>
+            product.id === savedProduct.id
+              ? savedProduct
+              : product
+          )
         );
+      } else {
+        const response =
+          await api.post<Product>(
+            "/api/Products/upload",
+            data
+          );
+
+        savedProduct = response.data;
+
+        /**
+         * Immediately add the new product
+         * to My Products.
+         *
+         * This makes the cards update without
+         * waiting for another GET request.
+         */
+        setProducts((prev) => [
+          savedProduct,
+          ...prev,
+        ]);
       }
 
-      /*
-       * CREATE
-       */
-      else {
-        await api.post(
-          "/api/Products/upload",
-          data
-        );
-      }
-
-      /*
-       * Save was successful.
-       * Clear the form first.
-       */
       resetForm();
 
-      /*
-       * Immediately reload My Products.
+      /**
+       * Refresh from backend after the immediate
+       * state update.
+       *
+       * This guarantees the UI matches the database.
        */
-      await loadProducts(supplierId);
+      await loadProducts(userId as string);
 
       alert(
         editingProduct
@@ -427,13 +441,19 @@ export default function ProviderInventoryPage() {
         error
       );
 
-      const apiError = error as ApiError;
+      const axiosError = error as {
+        response?: {
+          status?: number;
+          data?: unknown;
+        };
+        message?: string;
+      };
 
       const status =
-        apiError.response?.status;
+        axiosError.response?.status;
 
       const responseData =
-        apiError.response?.data;
+        axiosError.response?.data;
 
       console.error("Status:", status);
       console.error(
@@ -448,19 +468,34 @@ export default function ProviderInventoryPage() {
         typeof responseData === "string"
       ) {
         message = responseData;
-      } else if (responseData) {
+      } else if (
+        responseData &&
+        typeof responseData === "object"
+      ) {
+        const data =
+          responseData as {
+            message?: string;
+            title?: string;
+            detail?: string;
+          };
+
         message =
-          responseData.message ||
-          responseData.title ||
-          responseData.detail ||
+          data.message ||
+          data.title ||
+          data.detail ||
           message;
-      } else if (apiError.message) {
-        message = apiError.message;
+      } else if (
+        axiosError.message
+      ) {
+        message =
+          axiosError.message;
       }
 
       alert(
         `Failed to save product${
-          status ? ` (${status})` : ""
+          status
+            ? ` (${status})`
+            : ""
         }:\n${message}`
       );
     } finally {
@@ -468,6 +503,9 @@ export default function ProviderInventoryPage() {
     }
   };
 
+  /**
+   * Delete product.
+   */
   const deleteProduct = async (
     product: Product
   ) => {
@@ -489,12 +527,13 @@ export default function ProviderInventoryPage() {
         `/api/Products/${product.id}/supplier/${supplierId}`
       );
 
-      /*
-       * Remove immediately from the UI.
+      /**
+       * Immediately remove the card.
        */
-      setProducts((previous) =>
-        previous.filter(
-          (item) => item.id !== product.id
+      setProducts((prev) =>
+        prev.filter(
+          (item) =>
+            item.id !== product.id
         )
       );
     } catch (error: unknown) {
@@ -503,48 +542,18 @@ export default function ProviderInventoryPage() {
         error
       );
 
-      const apiError = error as ApiError;
-
-      const status =
-        apiError.response?.status;
-
-      const responseData =
-        apiError.response?.data;
-
-      const message =
-        typeof responseData === "string"
-          ? responseData
-          : "Failed to delete product.";
-
       alert(
-        `Failed to delete product${
-          status ? ` (${status})` : ""
-        }:\n${message}`
+        "Failed to delete product."
       );
     }
   };
-
-  /*
-   * No logged-in user.
-   */
-  if (!userId) {
-    return (
-      <main className="min-h-screen bg-slate-950 p-4 text-white md:p-8">
-        <div className="mx-auto max-w-6xl">
-          <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-6 text-red-300">
-            User information was not found.
-            Please login again.
-          </div>
-        </div>
-      </main>
-    );
-  }
 
   return (
     <main className="min-h-screen bg-slate-950 p-4 text-white md:p-8">
       <div className="mx-auto max-w-6xl space-y-6">
 
         {/* HEADER */}
+
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.3em] text-emerald-400">
             Provider Portal
@@ -559,7 +568,8 @@ export default function ProviderInventoryPage() {
           </p>
         </div>
 
-        {/* STATISTICS */}
+        {/* SUMMARY CARDS */}
+
         <section className="grid gap-4 md:grid-cols-3">
 
           <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
@@ -578,7 +588,14 @@ export default function ProviderInventoryPage() {
             </p>
 
             <p className="mt-2 text-3xl font-black">
-              {totalStock}
+              {products.reduce(
+                (sum, product) =>
+                  sum +
+                  Number(
+                    product.quantityAvailable
+                  ),
+                0
+              )}
             </p>
           </div>
 
@@ -594,7 +611,8 @@ export default function ProviderInventoryPage() {
 
         </section>
 
-        {/* ADD / EDIT PRODUCT */}
+        {/* ADD / EDIT */}
+
         <section className="rounded-3xl border border-white/10 bg-slate-900 p-5 shadow-xl">
 
           <h2 className="text-xl font-black">
@@ -605,54 +623,52 @@ export default function ProviderInventoryPage() {
 
           <div className="mt-5 grid gap-4 md:grid-cols-2">
 
-            {/* PART NUMBER */}
             <input
               className="rounded-xl border border-white/10 bg-slate-950 p-3 text-white outline-none focus:border-emerald-400"
               placeholder="Part Number"
               value={form.partNumber}
-              onChange={(event) =>
+              onChange={(e) =>
                 updateForm(
                   "partNumber",
-                  event.target.value
+                  e.target.value
                 )
               }
             />
 
-            {/* BRAND */}
             <input
               className="rounded-xl border border-white/10 bg-slate-950 p-3 text-white outline-none focus:border-emerald-400"
               placeholder="Brand"
               value={form.brand}
-              onChange={(event) =>
+              onChange={(e) =>
                 updateForm(
                   "brand",
-                  event.target.value
+                  e.target.value
                 )
               }
             />
 
-            {/* PRODUCT NAME */}
             <input
               className="rounded-xl border border-white/10 bg-slate-950 p-3 text-white outline-none focus:border-emerald-400 md:col-span-2"
               placeholder="Product Name"
               value={form.name}
-              onChange={(event) =>
+              onChange={(e) =>
                 updateForm(
                   "name",
-                  event.target.value
+                  e.target.value
                 )
               }
             />
 
             {/* IMAGE */}
+
             <div className="md:col-span-2">
 
               <input
                 type="file"
                 accept="image/*"
-                onChange={(event) =>
+                onChange={(e) =>
                   handleImageChange(
-                    event.target.files?.[0]
+                    e.target.files?.[0]
                   )
                 }
                 className="w-full rounded-xl border border-white/10 bg-slate-950 p-3 text-white"
@@ -660,6 +676,7 @@ export default function ProviderInventoryPage() {
 
               {previewUrl && (
                 <div className="relative mt-4 h-48 w-full overflow-hidden rounded-xl border border-white/10">
+
                   <Image
                     src={previewUrl}
                     alt="Product preview"
@@ -667,25 +684,28 @@ export default function ProviderInventoryPage() {
                     className="object-cover"
                     unoptimized
                   />
+
                 </div>
               )}
 
             </div>
 
             {/* DESCRIPTION */}
+
             <textarea
               className="min-h-28 rounded-xl border border-white/10 bg-slate-950 p-3 text-white outline-none focus:border-emerald-400 md:col-span-2"
               placeholder="Description"
               value={form.description}
-              onChange={(event) =>
+              onChange={(e) =>
                 updateForm(
                   "description",
-                  event.target.value
+                  e.target.value
                 )
               }
             />
 
             {/* PRICE */}
+
             <input
               className="rounded-xl border border-white/10 bg-slate-950 p-3 text-white outline-none focus:border-emerald-400"
               type="number"
@@ -693,39 +713,42 @@ export default function ProviderInventoryPage() {
               step="0.01"
               placeholder="Price"
               value={form.price}
-              onChange={(event) =>
+              onChange={(e) =>
                 updateForm(
                   "price",
-                  event.target.value
+                  e.target.value
                 )
               }
             />
 
-            {/* QUANTITY */}
+            {/* STOCK */}
+
             <input
               className="rounded-xl border border-white/10 bg-slate-950 p-3 text-white outline-none focus:border-emerald-400"
               type="number"
               min="0"
               step="1"
               placeholder="Stock Quantity"
-              value={form.quantityAvailable}
-              onChange={(event) =>
+              value={
+                form.quantityAvailable
+              }
+              onChange={(e) =>
                 updateForm(
                   "quantityAvailable",
-                  event.target.value
+                  e.target.value
                 )
               }
             />
 
           </div>
 
-          {/* BUTTONS */}
           <div className="mt-5 flex flex-col gap-3 md:flex-row">
 
             <button
               onClick={submitProduct}
               disabled={
-                saving || !supplierId
+                saving ||
+                !supplierId
               }
               className="w-full rounded-xl bg-emerald-500 p-4 font-black text-black transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
             >
@@ -751,21 +774,32 @@ export default function ProviderInventoryPage() {
         </section>
 
         {/* PRODUCTS */}
+
         <section className="rounded-3xl border border-white/10 bg-slate-900 p-5 shadow-xl">
 
           <div className="mb-5 flex items-center justify-between">
 
-            <h2 className="text-xl font-black">
-              My Products
-            </h2>
+            <div>
+              <h2 className="text-xl font-black">
+                My Products
+              </h2>
+
+              {supplierId && (
+                <p className="mt-1 text-xs text-slate-500">
+                  Supplier: {supplierId}
+                </p>
+              )}
+            </div>
 
             <button
-              onClick={() =>
-                supplierId &&
-                loadProducts(supplierId)
-              }
+              onClick={() => {
+                if (userId) {
+                  void loadProducts(userId);
+                }
+              }}
               disabled={
-                loading || !supplierId
+                loading ||
+                !userId
               }
               className="rounded-xl border border-white/10 px-4 py-2 text-sm font-bold text-slate-300 hover:bg-white/10 disabled:opacity-60"
             >
@@ -776,13 +810,21 @@ export default function ProviderInventoryPage() {
 
           </div>
 
-          {!supplierId && (
-            <div className="rounded-xl border border-yellow-500/20 bg-yellow-500/10 p-4 text-yellow-300">
-              Loading supplier profile...
+          {!userId && (
+            <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-red-300">
+              User ID not found. Please login again.
             </div>
           )}
 
-          {supplierId &&
+          {userId &&
+            !supplierId &&
+            !loading && (
+              <div className="rounded-xl border border-yellow-500/20 bg-yellow-500/10 p-4 text-yellow-300">
+                Loading supplier profile...
+              </div>
+            )}
+
+          {userId &&
             products.length === 0 &&
             !loading && (
               <div className="rounded-xl border border-white/10 bg-white/5 p-6 text-center text-slate-400">
@@ -790,22 +832,18 @@ export default function ProviderInventoryPage() {
               </div>
             )}
 
-          {loading && (
-            <div className="rounded-xl border border-white/10 bg-white/5 p-6 text-center text-slate-400">
-              Loading products...
-            </div>
-          )}
+          {/* PRODUCT GRID */}
 
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
 
             {products.map((product) => (
-
               <article
                 key={product.id}
                 className="overflow-hidden rounded-2xl border border-white/10 bg-slate-950"
               >
 
                 {/* IMAGE */}
+
                 {product.imageUrl ? (
                   <div className="relative h-44 w-full">
 
@@ -826,31 +864,27 @@ export default function ProviderInventoryPage() {
 
                 <div className="space-y-2 p-4">
 
-                  {/* BRAND */}
                   <p className="text-xs uppercase tracking-[0.2em] text-emerald-400">
                     {product.brand}
                   </p>
 
-                  {/* NAME */}
                   <h3 className="text-lg font-black">
                     {product.name}
                   </h3>
 
-                  {/* PART NUMBER */}
                   {product.partNumber && (
                     <p className="text-xs text-slate-500">
-                      Part #: {product.partNumber}
+                      Part #:{" "}
+                      {product.partNumber}
                     </p>
                   )}
 
-                  {/* DESCRIPTION */}
                   {product.description && (
                     <p className="line-clamp-2 text-sm text-slate-400">
                       {product.description}
                     </p>
                   )}
 
-                  {/* PRICE / STOCK */}
                   <div className="flex items-center justify-between pt-3">
 
                     <p className="text-xl font-black text-emerald-400">
@@ -867,7 +901,6 @@ export default function ProviderInventoryPage() {
 
                   </div>
 
-                  {/* ACTIONS */}
                   <div className="grid grid-cols-2 gap-3 pt-4">
 
                     <button
@@ -881,7 +914,9 @@ export default function ProviderInventoryPage() {
 
                     <button
                       onClick={() =>
-                        deleteProduct(product)
+                        void deleteProduct(
+                          product
+                        )
                       }
                       className="rounded-xl bg-red-500 px-4 py-2 font-bold text-white hover:bg-red-400"
                     >
@@ -893,7 +928,6 @@ export default function ProviderInventoryPage() {
                 </div>
 
               </article>
-
             ))}
 
           </div>
