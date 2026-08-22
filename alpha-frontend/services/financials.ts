@@ -47,3 +47,20 @@ export async function verifySettlement(orderId: string) {
   const res = await api.post(`/api/Financials/orders/${orderId}/verify-settlement`);
   return res.data;
 }
+
+export async function getMyDriverWallet() {
+  const response =
+    await api.get(
+      "/api/Financials/my-driver-wallet"
+    );
+
+  return response.data;
+}
+
+export async function getMySupplierEarnings() {
+  const response = await api.get(
+    "/api/Financials/my-supplier-earnings"
+  );
+
+  return response.data;
+}

@@ -14,3 +14,12 @@ export async function getDriverDashboard() {
   const response = await api.get("/api/Dashboard/driver");
   return response.data;
 }
+
+export async function getMyDriverOrders() {
+  const response = await api.get(
+    "/api/Orders/my-driver-orders"
+  );
+
+  return response.data;
+}
+

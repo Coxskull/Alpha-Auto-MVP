@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getDriverWallet } from "@/services/financials";
+import { getDriverWallet, getMyDriverWallet } from "@/services/financials";
 
 type WalletItem = {
   id: string;
@@ -20,19 +20,23 @@ type DriverWallet = {
 export default function DriverWalletPage() {
   const [wallet, setWallet] = useState<DriverWallet | null>(null);
 
-  useEffect(() => {
-    const driverId = localStorage.getItem("driverId") || "";
-
-    if (!driverId) return;
-
-    const timeout = window.setTimeout(() => {
-      getDriverWallet(driverId).then((data: DriverWallet) => {
+ useEffect(() => {
+  const timeout = window.setTimeout(() => {
+    getMyDriverWallet()
+      .then((data: DriverWallet) => {
         setWallet(data);
+      })
+      .catch((error) => {
+        console.error(
+          "Failed to load driver wallet:",
+          error
+        );
       });
-    }, 0);
+  }, 0);
 
-    return () => window.clearTimeout(timeout);
-  }, []);
+  return () =>
+    window.clearTimeout(timeout);
+}, []);
 
   if (!wallet) {
     return <main className="p-6 text-white">Loading wallet...</main>;

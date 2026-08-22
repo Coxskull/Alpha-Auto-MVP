@@ -37,39 +37,41 @@ export default function ProofUpload({
   }
 
   async function handleSubmit() {
-    if (!imageFile || !previewUrl) {
-      alert("Please take or upload a photo first.");
-      return;
-    }
-
-    try {
-      setLoading(true);
-
-      /*
-        TEMPORARY MVP:
-        Your current backend expects imageUrl as text.
-        For now, we send the local preview URL.
-
-        Later we will upload this file to Supabase Storage,
-        Cloudinary, S3, or your API, then send the real image URL.
-      */
-
-      await uploadDeliveryProof(
-        orderId,
-        previewUrl
-      );
-
-      await onUploaded();
-
-      setImageFile(null);
-      setPreviewUrl(null);
-    } catch (error) {
-      console.error(error);
-      alert("Failed to submit proof.");
-    } finally {
-      setLoading(false);
-    }
+  if (!imageFile) {
+    alert("Please take or upload a photo first.");
+    return;
   }
+
+  try {
+    setLoading(true);
+
+    const result = await uploadDeliveryProof(
+      orderId,
+      imageFile
+    );
+
+    console.log(
+      "Delivery proof uploaded successfully:",
+      result
+    );
+
+    await onUploaded();
+
+    setImageFile(null);
+    setPreviewUrl(null);
+
+  } catch (error) {
+    console.error(
+      "Failed to upload delivery proof:",
+      error
+    );
+
+    alert("Failed to submit proof.");
+
+  } finally {
+    setLoading(false);
+  }
+}
 
   return (
     <div className="bg-[#111827] border border-white/10 rounded-2xl p-5">

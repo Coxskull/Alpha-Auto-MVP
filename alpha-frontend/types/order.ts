@@ -40,4 +40,5 @@ export interface ProviderOrder {
   itemDescription: string;
   status: string;
   createdAt: string;
+  driverName?: string | null;
 }

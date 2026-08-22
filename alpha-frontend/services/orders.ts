@@ -172,16 +172,31 @@ export async function markDelivered(orderId: string) {
   return api.post(`/api/Orders/${orderId}/delivered`);
 }
 
-export async function uploadDeliveryProof(orderId: string, imageUrl: string) {
-  return api.post(`/api/Orders/${orderId}/proof`, null, {
-    params: { imageUrl },
-  });
+export async function uploadDeliveryProof(
+  orderId: string,
+  file: File
+) {
+  const formData = new FormData();
+
+  formData.append("image", file);
+
+  const response = await api.post(
+    `/api/Orders/${orderId}/proof`,
+    formData
+  );
+
+  return response.data;
 }
 
-export const getProviderOrders = async (): Promise<ProviderOrder[]> => {
-  const response = await api.get("/api/Orders");
-  return response.data;
-};
+export const getProviderOrders =
+  async (): Promise<ProviderOrder[]> => {
+
+    const response = await api.get(
+      "/api/Orders/my-supplier-orders"
+    );
+
+    return response.data;
+  };
 
 export const acceptOrder = async (orderId: string) => {
   return api.post(`/api/Orders/${orderId}/supplier-accept`);
@@ -190,3 +205,11 @@ export const acceptOrder = async (orderId: string) => {
 export const markReadyForPickup = async (orderId: string) => {
   return api.post(`/api/Orders/${orderId}/ready-for-pickup`);
 };
+
+export async function getMySupplierOrders() {
+  const response = await api.get(
+    "/api/Orders/my-supplier-orders"
+  );
+
+  return response.data;
+}
