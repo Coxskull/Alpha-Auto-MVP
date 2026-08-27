@@ -1,6 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 import {
   driverAcceptServiceRequest,
@@ -11,6 +16,7 @@ import {
 import {
   driverAcceptOrder,
   markDelivered,
+  markEnRoute,
   markPickedUp,
   uploadDeliveryProof,
 } from "@/services/orderActions";
@@ -84,7 +90,8 @@ function getErrorMessage(error: unknown): string {
       message?: string;
     };
 
-    const data = axiosError.response?.data;
+    const data =
+      axiosError.response?.data;
 
     if (typeof data === "string") {
       return data;
@@ -132,7 +139,8 @@ function getUserId(): string | null {
   ];
 
   for (const key of possibleKeys) {
-    const stored = localStorage.getItem(key);
+    const stored =
+      localStorage.getItem(key);
 
     if (!stored) {
       continue;
@@ -156,7 +164,7 @@ function getUserId(): string | null {
         return String(userId);
       }
     } catch {
-      // Continue.
+      // Continue to fallback storage keys.
     }
   }
 
@@ -180,7 +188,7 @@ function getUserId(): string | null {
 
 
 // ============================================================
-// COMPONENT
+// MAIN COMPONENT
 // ============================================================
 
 export default function DriverDashboardPage() {
@@ -243,18 +251,21 @@ export default function DriverDashboardPage() {
         );
       }
 
-      return String(resolvedDriverId);
+      return String(
+        resolvedDriverId
+      );
     },
     []
   );
 
 
   // ============================================================
-  // LOAD DATA
+  // FETCH DASHBOARD DATA
   // ============================================================
 
   const fetchData = useCallback(
     async (showLoading = true) => {
+
       if (isFetching.current) {
         return;
       }
@@ -268,9 +279,10 @@ export default function DriverDashboardPage() {
       setError(null);
 
       try {
-        // ------------------------------------------------------
-        // GET CURRENT USER
-        // ------------------------------------------------------
+
+        // ======================================================
+        // USER
+        // ======================================================
 
         const currentUserId =
           getUserId();
@@ -281,16 +293,19 @@ export default function DriverDashboardPage() {
           );
         }
 
-        setUserId(currentUserId);
+        setUserId(
+          currentUserId
+        );
 
 
-        // ------------------------------------------------------
-        // GET CURRENT DRIVER
-        // ------------------------------------------------------
+        // ======================================================
+        // DRIVER
+        // ======================================================
 
         let currentDriverId: string;
 
         try {
+
           currentDriverId =
             await loadDriverId(
               currentUserId
@@ -299,7 +314,9 @@ export default function DriverDashboardPage() {
           setDriverId(
             currentDriverId
           );
+
         } catch (driverError) {
+
           console.error(
             "[DriverDashboard] Driver lookup failed:",
             driverError
@@ -313,18 +330,9 @@ export default function DriverDashboardPage() {
         }
 
 
-        // ------------------------------------------------------
-        // LOAD ONLY DRIVER DATA
-        // ------------------------------------------------------
-        //
-        // IMPORTANT:
-        //
-        // getMyDriverOrders()
-        // must return orders assigned to the
-        // currently authenticated driver.
-        //
-        // We do NOT call a generic "all orders" endpoint.
-        //
+        // ======================================================
+        // API REQUESTS
+        // ======================================================
 
         const results =
           await Promise.allSettled([
@@ -345,6 +353,7 @@ export default function DriverDashboardPage() {
           requestResult.status ===
           "fulfilled"
         ) {
+
           const serviceRequests =
             Array.isArray(
               requestResult.value
@@ -355,7 +364,9 @@ export default function DriverDashboardPage() {
           setRequests(
             serviceRequests
           );
+
         } else {
+
           console.error(
             "[DriverDashboard] Service requests failed:",
             requestResult.reason
@@ -366,7 +377,7 @@ export default function DriverDashboardPage() {
 
 
         // ======================================================
-        // DRIVER STATS
+        // STATS
         // ======================================================
 
         const statsResult =
@@ -376,10 +387,13 @@ export default function DriverDashboardPage() {
           statsResult.status ===
           "fulfilled"
         ) {
+
           setStats(
             statsResult.value
           );
+
         } else {
+
           console.error(
             "[DriverDashboard] Dashboard stats failed:",
             statsResult.reason
@@ -400,37 +414,43 @@ export default function DriverDashboardPage() {
           orderResult.status ===
           "fulfilled"
         ) {
+
           const responseData =
             orderResult.value;
 
-          let driverOrders: Order[] = [];
+          let driverOrders: Order[] =
+            [];
 
-          // Handle:
-          // [
-          //   {...},
-          //   {...}
-          // ]
+
+          // ----------------------------------------------------
+          // DIRECT ARRAY
+          // ----------------------------------------------------
+
           if (
             Array.isArray(
               responseData
             )
           ) {
+
             driverOrders =
               responseData;
           }
 
-          // Handle:
-          // {
-          //   data: [...]
-          // }
+
+          // ----------------------------------------------------
+          // { data: [...] }
+          // ----------------------------------------------------
+
           else if (
             Array.isArray(
               responseData?.data
             )
           ) {
+
             driverOrders =
               responseData.data;
           }
+
 
           console.log(
             "[DriverDashboard] Driver orders:",
@@ -441,15 +461,11 @@ export default function DriverDashboardPage() {
           // ----------------------------------------------------
           // SAFETY FILTER
           // ----------------------------------------------------
-          //
-          // Even though getMyDriverOrders()
-          // should already return only this driver's
-          // orders, we verify the driver ID here.
-          //
 
           const assignedOrders =
             driverOrders.filter(
               (order) => {
+
                 if (
                   !order.driverId
                 ) {
@@ -477,7 +493,9 @@ export default function DriverDashboardPage() {
           setOrders(
             assignedOrders
           );
+
         } else {
+
           console.error(
             "[DriverDashboard] Driver orders failed:",
             orderResult.reason
@@ -488,7 +506,7 @@ export default function DriverDashboardPage() {
 
 
         // ======================================================
-        // PARTIAL FAILURES
+        // PARTIAL FAILURE LOGGING
         // ======================================================
 
         const failedRequests =
@@ -501,12 +519,14 @@ export default function DriverDashboardPage() {
         if (
           failedRequests.length > 0
         ) {
+
           console.warn(
             `[DriverDashboard] ${failedRequests.length} API request(s) failed.`
           );
         }
 
       } catch (requestError) {
+
         console.error(
           "[DriverDashboard] Dashboard loading failed:",
           requestError
@@ -517,8 +537,11 @@ export default function DriverDashboardPage() {
             requestError
           )
         );
+
       } finally {
+
         setLoading(false);
+
         isFetching.current =
           false;
       }
@@ -532,53 +555,64 @@ export default function DriverDashboardPage() {
   // ============================================================
 
   useEffect(() => {
+
     let cancelled = false;
 
-    const initialize =
-      async () => {
-        if (cancelled) {
-          return;
+    const initialLoad =
+      window.setTimeout(() => {
+
+        if (!cancelled) {
+          void fetchData(true);
         }
 
-        await fetchData(true);
-      };
+      }, 0);
 
-    void initialize();
 
     const interval =
-      window.setInterval(
-        () => {
-          if (!cancelled) {
-            void fetchData(false);
-          }
-        },
-        15000
-      );
+      window.setInterval(() => {
+
+        if (!cancelled) {
+          void fetchData(false);
+        }
+
+      }, 15000);
+
 
     return () => {
+
       cancelled = true;
+
+      window.clearTimeout(
+        initialLoad
+      );
+
       window.clearInterval(
         interval
       );
     };
+
   }, [fetchData]);
 
 
   // ============================================================
-  // RUN ACTION
+  // RUN DRIVER ACTION
   // ============================================================
 
   async function run(
     id: string,
     action: () => Promise<unknown>
   ) {
+
     try {
+
       setActionLoading(id);
 
       await action();
 
       await fetchData(false);
+
     } catch (requestError) {
+
       console.error(
         "[DriverDashboard] Action failed:",
         requestError
@@ -592,7 +626,9 @@ export default function DriverDashboardPage() {
       alert(
         `Driver action failed.\n\n${message}`
       );
+
     } finally {
+
       setActionLoading(null);
     }
   }
@@ -603,8 +639,10 @@ export default function DriverDashboardPage() {
   // ============================================================
 
   if (loading) {
+
     return (
       <main className="min-h-screen bg-[#0B0F14] p-6 text-white">
+
         <div className="mx-auto max-w-6xl">
 
           <p className="font-semibold uppercase tracking-wider text-orange-400">
@@ -622,6 +660,7 @@ export default function DriverDashboardPage() {
               <div className="h-6 w-6 animate-spin rounded-full border-2 border-white/20 border-t-orange-400" />
 
               <div>
+
                 <p className="font-semibold">
                   Loading driver dashboard...
                 </p>
@@ -630,6 +669,7 @@ export default function DriverDashboardPage() {
                   Loading your assigned orders,
                   service requests and earnings.
                 </p>
+
               </div>
 
             </div>
@@ -637,13 +677,14 @@ export default function DriverDashboardPage() {
           </div>
 
         </div>
+
       </main>
     );
   }
 
 
   // ============================================================
-  // MAIN UI
+  // DASHBOARD
   // ============================================================
 
   return (
@@ -692,6 +733,7 @@ export default function DriverDashboardPage() {
       ====================================================== */}
 
       {error && (
+
         <section className="rounded-2xl border border-red-500/30 bg-red-500/10 p-5">
 
           <p className="font-bold text-red-400">
@@ -703,6 +745,7 @@ export default function DriverDashboardPage() {
           </p>
 
           <button
+            type="button"
             onClick={() =>
               void fetchData(true)
             }
@@ -712,6 +755,7 @@ export default function DriverDashboardPage() {
           </button>
 
         </section>
+
       )}
 
 
@@ -720,6 +764,7 @@ export default function DriverDashboardPage() {
       ====================================================== */}
 
       {stats && (
+
         <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
 
           <Card
@@ -756,11 +801,12 @@ export default function DriverDashboardPage() {
           />
 
         </div>
+
       )}
 
 
       {/* ======================================================
-          ASSIGNED ORDER DELIVERIES
+          ORDER DELIVERIES
       ====================================================== */}
 
       <section className="rounded-3xl border border-white/10 bg-[#111827] p-5">
@@ -792,9 +838,15 @@ export default function DriverDashboardPage() {
                   actionLoading ===
                   order.id;
 
+
+                // ==================================================
+                // ORDER WORKFLOW
+                // ==================================================
+
                 const canAccept =
                   order.status ===
                   "driver_assigned";
+
 
                 const canPickup =
                   order.status ===
@@ -802,18 +854,38 @@ export default function DriverDashboardPage() {
                   order.status ===
                     "waiting_for_pickup";
 
+
+                /*
+                 * IMPORTANT:
+                 *
+                 * En Route becomes available
+                 * AFTER the driver marks the order
+                 * as picked up.
+                 */
+                const canEnRoute =
+                  order.status ===
+                  "picked_up";
+
+
+                /*
+                 * Delivered becomes available
+                 * only when the order is en route.
+                 */
                 const canDeliver =
                   order.status ===
                   "en_route";
 
 
                 return (
+
                   <div
                     key={order.id}
                     className="rounded-3xl border border-white/5 bg-[#0B0F14] p-6 transition-all hover:border-orange-500/20"
                   >
 
-                    {/* ORDER HEADER */}
+                    {/* ==================================================
+                        ORDER HEADER
+                    ================================================== */}
 
                     <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
 
@@ -870,9 +942,13 @@ export default function DriverDashboardPage() {
                     </div>
 
 
-                    {/* ORDER STEPS */}
+                    {/* ==================================================
+                        ORDER PROGRESS
+                    ================================================== */}
 
-                    <div className="mt-6 grid grid-cols-1 gap-3 md:grid-cols-4">
+                    <div className="mt-6 grid grid-cols-1 gap-3 md:grid-cols-5">
+
+                      {/* ASSIGNED */}
 
                       <Step
                         label="Assigned"
@@ -893,6 +969,9 @@ export default function DriverDashboardPage() {
                         )}
                       />
 
+
+                      {/* ACCEPTED */}
+
                       <Step
                         label="Accepted"
                         active={
@@ -911,6 +990,9 @@ export default function DriverDashboardPage() {
                         )}
                       />
 
+
+                      {/* PICKED UP */}
+
                       <Step
                         label="Picked Up"
                         active={
@@ -927,11 +1009,14 @@ export default function DriverDashboardPage() {
                         )}
                       />
 
+
+                      {/* EN ROUTE */}
+
                       <Step
-                        label="Delivered"
+                        label="En Route"
                         active={
                           order.status ===
-                          "delivered"
+                          "en_route"
                         }
                         done={[
                           "delivered",
@@ -942,16 +1027,36 @@ export default function DriverDashboardPage() {
                         )}
                       />
 
+
+                      {/* DELIVERED */}
+
+                      <Step
+                        label="Delivered"
+                        active={
+                          order.status ===
+                          "delivered"
+                        }
+                        done={[
+                          "proof_uploaded",
+                          "completed",
+                        ].includes(
+                          order.status
+                        )}
+                      />
+
                     </div>
 
 
-                    {/* ORDER ACTIONS */}
+                    {/* ==================================================
+                        ORDER ACTIONS
+                    ================================================== */}
 
                     <div className="mt-6 flex flex-wrap gap-3">
 
                       {/* ACCEPT */}
 
                       <button
+                        type="button"
                         disabled={
                           isBusy ||
                           !canAccept
@@ -965,7 +1070,7 @@ export default function DriverDashboardPage() {
                               )
                           )
                         }
-                        className="rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-bold text-black disabled:opacity-40"
+                        className="rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-bold text-black transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-40"
                       >
                         {isBusy
                           ? "Working..."
@@ -973,9 +1078,10 @@ export default function DriverDashboardPage() {
                       </button>
 
 
-                      {/* PICKUP */}
+                      {/* PICKED UP */}
 
                       <button
+                        type="button"
                         disabled={
                           isBusy ||
                           !canPickup
@@ -989,7 +1095,7 @@ export default function DriverDashboardPage() {
                               )
                           )
                         }
-                        className="rounded-xl bg-blue-500 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-40"
+                        className="rounded-xl bg-blue-500 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-blue-400 disabled:cursor-not-allowed disabled:opacity-40"
                       >
                         {isBusy
                           ? "Working..."
@@ -997,9 +1103,37 @@ export default function DriverDashboardPage() {
                       </button>
 
 
-                      {/* DELIVER */}
+                      {/* ==================================================
+                          EN ROUTE BUTTON
+                      ================================================== */}
 
                       <button
+                        type="button"
+                        disabled={
+                          isBusy ||
+                          !canEnRoute
+                        }
+                        onClick={() =>
+                          run(
+                            order.id,
+                            () =>
+                              markEnRoute(
+                                order.id
+                              )
+                          )
+                        }
+                        className="rounded-xl bg-purple-500 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-purple-400 disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        {isBusy
+                          ? "Working..."
+                          : "Mark En Route"}
+                      </button>
+
+
+                      {/* DELIVERED */}
+
+                      <button
+                        type="button"
                         disabled={
                           isBusy ||
                           !canDeliver
@@ -1013,7 +1147,7 @@ export default function DriverDashboardPage() {
                               )
                           )
                         }
-                        className="rounded-xl bg-green-500 px-4 py-2.5 text-sm font-bold text-black disabled:opacity-40"
+                        className="rounded-xl bg-green-500 px-4 py-2.5 text-sm font-bold text-black transition hover:bg-green-400 disabled:cursor-not-allowed disabled:opacity-40"
                       >
                         {isBusy
                           ? "Working..."
@@ -1021,12 +1155,14 @@ export default function DriverDashboardPage() {
                       </button>
 
 
-                      {/* PROOF */}
+                      {/* ==================================================
+                          UPLOAD DELIVERY PROOF
+                      ================================================== */}
 
                       {order.status ===
                         "delivered" && (
 
-                        <label className="cursor-pointer rounded-xl bg-orange-500 px-4 py-2.5 text-sm font-bold text-black hover:bg-orange-400">
+                        <label className="cursor-pointer rounded-xl bg-orange-500 px-4 py-2.5 text-sm font-bold text-black transition hover:bg-orange-400">
 
                           Upload Proof
 
@@ -1043,7 +1179,9 @@ export default function DriverDashboardPage() {
                             ) => {
 
                               const file =
-                                event.target.files?.[0];
+                                event
+                                  .target
+                                  .files?.[0];
 
                               if (!file) {
                                 return;
@@ -1060,7 +1198,6 @@ export default function DriverDashboardPage() {
 
                               event.target.value =
                                 "";
-
                             }}
                           />
 
@@ -1071,7 +1208,26 @@ export default function DriverDashboardPage() {
                     </div>
 
 
-                    {/* PROOF IMAGE */}
+                    {/* ==================================================
+                        ZONE
+                    ================================================== */}
+
+                    <div className="mt-5">
+
+                      <Info
+                        label="Zone"
+                        value={
+                          order.zone ||
+                          "N/A"
+                        }
+                      />
+
+                    </div>
+
+
+                    {/* ==================================================
+                        PROOF
+                    ================================================== */}
 
                     {order.proofImageUrl && (
 
@@ -1090,12 +1246,14 @@ export default function DriverDashboardPage() {
                         />
 
                         {order.proofUploadedAt && (
+
                           <p className="mt-2 text-xs text-gray-400">
                             Uploaded:{" "}
                             {new Date(
                               order.proofUploadedAt
                             ).toLocaleString()}
                           </p>
+
                         )}
 
                       </div>
@@ -1103,6 +1261,7 @@ export default function DriverDashboardPage() {
                     )}
 
                   </div>
+
                 );
               }
             )}
@@ -1115,7 +1274,7 @@ export default function DriverDashboardPage() {
 
 
       {/* ======================================================
-          ASSIGNED SERVICE DELIVERIES
+          SERVICE DELIVERIES
       ====================================================== */}
 
       <section className="rounded-3xl border border-white/10 bg-[#111827] p-5">
@@ -1147,13 +1306,16 @@ export default function DriverDashboardPage() {
                   actionLoading ===
                   request.id;
 
+
                 const canAccept =
                   request.status ===
                   "driver_assigned";
 
+
                 const canPickUp =
                   request.status ===
                   "driver_accepted";
+
 
                 const canDeliver =
                   request.status ===
@@ -1161,10 +1323,13 @@ export default function DriverDashboardPage() {
 
 
                 return (
+
                   <div
                     key={request.id}
                     className="rounded-3xl border border-white/5 bg-[#0B0F14] p-6 transition-all hover:border-orange-500/20"
                   >
+
+                    {/* SERVICE HEADER */}
 
                     <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
 
@@ -1192,7 +1357,9 @@ export default function DriverDashboardPage() {
 
                         <p className="text-sm text-gray-400">
                           Issue:{" "}
-                          {request.issueDescription}
+                          {
+                            request.issueDescription
+                          }
                         </p>
 
                       </div>
@@ -1231,6 +1398,8 @@ export default function DriverDashboardPage() {
                     </div>
 
 
+                    {/* SERVICE INFORMATION */}
+
                     <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-4">
 
                       <Info
@@ -1268,6 +1437,8 @@ export default function DriverDashboardPage() {
                     </div>
 
 
+                    {/* SERVICE PROGRESS */}
+
                     <div className="mt-6 grid grid-cols-1 gap-3 md:grid-cols-4">
 
                       <Step
@@ -1288,6 +1459,7 @@ export default function DriverDashboardPage() {
                         )}
                       />
 
+
                       <Step
                         label="Accepted"
                         active={
@@ -1305,6 +1477,7 @@ export default function DriverDashboardPage() {
                         )}
                       />
 
+
                       <Step
                         label="Parts Picked Up"
                         active={
@@ -1320,6 +1493,7 @@ export default function DriverDashboardPage() {
                           request.status
                         )}
                       />
+
 
                       <Step
                         label="Parts Delivered"
@@ -1339,11 +1513,14 @@ export default function DriverDashboardPage() {
                     </div>
 
 
+                    {/* SERVICE ACTIONS */}
+
                     <div className="mt-6 flex flex-wrap gap-3">
 
                       {/* ACCEPT */}
 
                       <button
+                        type="button"
                         disabled={
                           isBusy ||
                           !canAccept
@@ -1368,6 +1545,7 @@ export default function DriverDashboardPage() {
                       {/* PICKUP */}
 
                       <button
+                        type="button"
                         disabled={
                           isBusy ||
                           !canPickUp
@@ -1393,6 +1571,7 @@ export default function DriverDashboardPage() {
                       {/* DELIVER */}
 
                       <button
+                        type="button"
                         disabled={
                           isBusy ||
                           !canDeliver
@@ -1417,6 +1596,7 @@ export default function DriverDashboardPage() {
                     </div>
 
                   </div>
+
                 );
               }
             )}
@@ -1516,7 +1696,7 @@ function Step({
 
 
 // ============================================================
-// STATUS
+// STATUS PILL
 // ============================================================
 
 function StatusPill({
