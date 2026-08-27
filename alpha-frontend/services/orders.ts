@@ -121,12 +121,20 @@ export async function createOrder(
 }
 
 export async function getOrders(): Promise<Order[]> {
-  const response = await api.get("/api/Orders");
+  const response =
+    await api.get<Order[]>("/api/Orders");
+
   return response.data;
 }
 
-export async function getOrder(id: string): Promise<Order> {
-  const response = await api.get(`/api/Orders/${id}/details`);
+export async function getOrder(
+  id: string
+): Promise<Order> {
+  const response =
+    await api.get<Order>(
+      `/api/Orders/${id}/details`
+    );
+
   return response.data;
 }
 
@@ -134,43 +142,93 @@ export async function getAllOrders(): Promise<Order[]> {
   return getOrders();
 }
 
-export async function getDriverOrders(driverId: string): Promise<Order[]> {
-  const orders = await getAllOrders();
+
+/**
+ * Get orders assigned to the currently authenticated driver.
+ *
+ * IMPORTANT:
+ * This endpoint uses the driver's authenticated user identity.
+ * Do not pass driverId from the browser.
+ */
+export async function getMyDriverOrders(): Promise<Order[]> {
+  const response =
+    await api.get<Order[]>(
+      "/api/Orders/my-driver-orders"
+    );
+
+  return response.data;
+}
+
+
+/**
+ * Backwards-compatible helper.
+ *
+ * The driverId parameter is retained so existing callers
+ * do not immediately break, but the actual data is retrieved
+ * from the authenticated-driver endpoint.
+ */
+export async function getDriverOrders(
+  driverId?: string
+): Promise<Order[]> {
+  const orders = await getMyDriverOrders();
 
   return orders.filter(
     (order) =>
-      order.driverId === driverId &&
-      order.status !== "delivered" &&
-      order.status !== "completed" &&
-      order.status !== "cancelled"
+      [
+        "driver_assigned",
+        "driver_accepted",
+        "waiting_for_pickup",
+        "picked_up",
+        "en_route",
+        "arrived",
+      ].includes(order.status)
   );
 }
 
-export async function getDriverHistory(driverId: string): Promise<Order[]> {
-  const orders = await getAllOrders();
+
+/**
+ * Driver delivery history.
+ */
+export async function getDriverHistory(
+  driverId?: string
+): Promise<Order[]> {
+  const orders = await getMyDriverOrders();
 
   return orders.filter(
     (order) =>
-      order.driverId === driverId &&
-      (
-        order.status === "delivered" ||
-        order.status === "completed" ||
-        order.status === "proof_uploaded"
-      )
+      order.status === "delivered" ||
+      order.status === "completed" ||
+      order.status === "proof_uploaded"
   );
 }
 
-export async function markPickedUp(orderId: string) {
-  return api.post(`/api/Orders/${orderId}/picked-up`);
+
+export async function markPickedUp(
+  orderId: string
+) {
+  return api.post(
+    `/api/Orders/${orderId}/picked-up`
+  );
 }
 
-export async function markEnRoute(orderId: string) {
-  return api.post(`/api/Orders/${orderId}/en-route`);
+
+export async function markEnRoute(
+  orderId: string
+) {
+  return api.post(
+    `/api/Orders/${orderId}/en-route`
+  );
 }
 
-export async function markDelivered(orderId: string) {
-  return api.post(`/api/Orders/${orderId}/delivered`);
+
+export async function markDelivered(
+  orderId: string
+) {
+  return api.post(
+    `/api/Orders/${orderId}/delivered`
+  );
 }
+
 
 export async function uploadDeliveryProof(
   orderId: string,
@@ -188,6 +246,10 @@ export async function uploadDeliveryProof(
   return response.data;
 }
 
+
+/**
+ * Supplier / Provider Orders
+ */
 export const getProviderOrders =
   async (): Promise<ProviderOrder[]> => {
 
@@ -198,13 +260,24 @@ export const getProviderOrders =
     return response.data;
   };
 
-export const acceptOrder = async (orderId: string) => {
-  return api.post(`/api/Orders/${orderId}/supplier-accept`);
+
+export const acceptOrder = async (
+  orderId: string
+) => {
+  return api.post(
+    `/api/Orders/${orderId}/supplier-accept`
+  );
 };
 
-export const markReadyForPickup = async (orderId: string) => {
-  return api.post(`/api/Orders/${orderId}/ready-for-pickup`);
+
+export const markReadyForPickup = async (
+  orderId: string
+) => {
+  return api.post(
+    `/api/Orders/${orderId}/ready-for-pickup`
+  );
 };
+
 
 export async function getMySupplierOrders() {
   const response = await api.get(
