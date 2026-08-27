@@ -15,11 +15,14 @@ import {
 import {
   driverAcceptOrder,
   markDelivered,
+  markEnRoute,
   markPickedUp,
 } from "@/services/orderActions";
 
 function formatStatus(status: string) {
-  return status.replaceAll("_", " ");
+  return status
+    .replaceAll("_", " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 export default function DriverOrdersTable() {
@@ -38,7 +41,7 @@ export default function DriverOrdersTable() {
           [
             "driver_assigned",
             "driver_accepted",
-            "waiting_for_pickup",
+            "ready_for_pickup",
             "picked_up",
             "en_route",
             "arrived",
@@ -58,11 +61,6 @@ export default function DriverOrdersTable() {
     }
   }, []);
 
-  /*
-   * Delay the initial request until after the effect
-   * has completed. This avoids the React
-   * set-state-in-effect ESLint warning.
-   */
   useEffect(() => {
     const initialLoad = window.setTimeout(() => {
       void fetchOrders();
@@ -94,8 +92,13 @@ export default function DriverOrdersTable() {
         error
       );
 
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Please check the current order status.";
+
       alert(
-        "Driver order action failed. Please check the current order status."
+        `Driver order action failed.\n\n${message}`
       );
     } finally {
       setActionLoading(null);
@@ -117,6 +120,8 @@ export default function DriverOrdersTable() {
   return (
     <main className="min-h-screen bg-[#0B0F14] p-6 text-white">
       <section className="mx-auto max-w-7xl">
+
+        {/* HEADER */}
         <div className="mb-6">
           <p className="font-semibold uppercase tracking-wider text-orange-400">
             Alpha Driver Panel
@@ -127,11 +132,12 @@ export default function DriverOrdersTable() {
           </h1>
 
           <p className="mt-2 text-gray-400">
-            Accept assigned customer orders, mark pickup,
-            and complete delivery.
+            Accept assigned customer orders, pick them up,
+            mark them en route, and complete delivery.
           </p>
         </div>
 
+        {/* EMPTY */}
         {orders.length === 0 ? (
           <div className="rounded-3xl border border-white/10 bg-[#111827] p-8 text-center">
             <p className="text-gray-400">
@@ -145,28 +151,53 @@ export default function DriverOrdersTable() {
           </div>
         ) : (
           <div className="space-y-5">
+
             {orders.map((order) => {
               const isBusy =
                 actionLoading === order.id;
+
+              /*
+               * DRIVER WORKFLOW
+               *
+               * driver_assigned
+               *       ↓
+               * driver_accepted
+               *       ↓
+               * ready_for_pickup
+               *       ↓
+               * picked_up
+               *       ↓
+               * en_route
+               *       ↓
+               * delivered
+               */
 
               const canAccept =
                 order.status === "driver_assigned";
 
               const canPickup =
-  order.status === "driver_accepted" ||
-  order.status === "ready_for_pickup";
+                order.status === "driver_accepted" ||
+                order.status === "ready_for_pickup";
+
+              const canEnRoute =
+                order.status === "picked_up";
 
               const canDeliver =
-                order.status === "en_route";
+                order.status === "en_route" ||
+                order.status === "arrived";
 
               return (
                 <article
                   key={order.id}
-                  className="rounded-3xl border border-white/5 bg-[#111827] p-6"
+                  className="rounded-3xl border border-white/5 bg-[#111827] p-6 transition-all hover:border-orange-500/20"
                 >
-                  <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+
+                  {/* ORDER HEADER */}
+                  <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+
                     <div>
                       <div className="flex flex-wrap items-center gap-3">
+
                         <h2 className="text-xl font-bold">
                           {order.orderNumber}
                         </h2>
@@ -176,6 +207,7 @@ export default function DriverOrdersTable() {
                             order.status
                           )}
                         </span>
+
                       </div>
 
                       <p className="mt-2 text-sm text-gray-400">
@@ -190,87 +222,219 @@ export default function DriverOrdersTable() {
                       </p>
                     </div>
 
-                    <div className="flex flex-wrap gap-3">
-                      <button
-                        type="button"
-                        disabled={
-                          isBusy || !canAccept
-                        }
-                        onClick={() =>
-                          run(
-                            order.id,
-                            () =>
-                              driverAcceptOrder(
-                                order.id
-                              )
-                          )
-                        }
-                        className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-bold text-black disabled:opacity-40"
-                      >
-                        {isBusy
-                          ? "Working..."
-                          : "Accept Order"}
-                      </button>
+                    {/* ADDRESS */}
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
 
-                      <button
-                        type="button"
-                        disabled={
-                          isBusy || !canPickup
+                      <Info
+                        label="Pickup"
+                        value={
+                          order.pickupAddress ||
+                          "N/A"
                         }
-                        onClick={() =>
-                          run(
-                            order.id,
-                            () =>
-                              markPickedUp(
-                                order.id
-                              )
-                          )
-                        }
-                        className="rounded-xl bg-blue-500 px-4 py-2 text-sm font-bold text-white disabled:opacity-40"
-                      >
-                        {isBusy
-                          ? "Working..."
-                          : "Mark Picked Up"}
-                      </button>
+                      />
 
-                      <button
-                        type="button"
-                        disabled={
-                          isBusy || !canDeliver
+                      <Info
+                        label="Delivery"
+                        value={
+                          order.deliveryAddress ||
+                          "N/A"
                         }
-                        onClick={() =>
-                          run(
-                            order.id,
-                            () =>
-                              markDelivered(
-                                order.id
-                              )
-                          )
-                        }
-                        className="rounded-xl bg-green-500 px-4 py-2 text-sm font-bold text-black disabled:opacity-40"
-                      >
-                        {isBusy
-                          ? "Working..."
-                          : "Mark Delivered"}
-                      </button>
+                      />
+
                     </div>
+
                   </div>
 
-                  <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-3">
-                    <Info
-                      label="Pickup"
-                      value={
-                        order.pickupAddress
+                  {/* STATUS STEPS */}
+                  <div className="mt-6 grid grid-cols-1 gap-3 md:grid-cols-5">
+
+                    <Step
+                      label="Assigned"
+                      active={
+                        order.status ===
+                        "driver_assigned"
                       }
+                      done={[
+                        "driver_accepted",
+                        "ready_for_pickup",
+                        "picked_up",
+                        "en_route",
+                        "arrived",
+                        "delivered",
+                        "proof_uploaded",
+                        "completed",
+                      ].includes(
+                        order.status
+                      )}
                     />
 
-                    <Info
-                      label="Delivery"
-                      value={
-                        order.deliveryAddress
+                    <Step
+                      label="Accepted"
+                      active={
+                        order.status ===
+                        "driver_accepted"
                       }
+                      done={[
+                        "ready_for_pickup",
+                        "picked_up",
+                        "en_route",
+                        "arrived",
+                        "delivered",
+                        "proof_uploaded",
+                        "completed",
+                      ].includes(
+                        order.status
+                      )}
                     />
 
+                    <Step
+                      label="Picked Up"
+                      active={
+                        order.status ===
+                        "picked_up"
+                      }
+                      done={[
+                        "en_route",
+                        "arrived",
+                        "delivered",
+                        "proof_uploaded",
+                        "completed",
+                      ].includes(
+                        order.status
+                      )}
+                    />
+
+                    <Step
+                      label="En Route"
+                      active={
+                        order.status ===
+                        "en_route"
+                      }
+                      done={[
+                        "arrived",
+                        "delivered",
+                        "proof_uploaded",
+                        "completed",
+                      ].includes(
+                        order.status
+                      )}
+                    />
+
+                    <Step
+                      label="Delivered"
+                      active={
+                        order.status ===
+                        "delivered"
+                      }
+                      done={[
+                        "proof_uploaded",
+                        "completed",
+                      ].includes(
+                        order.status
+                      )}
+                    />
+
+                  </div>
+
+                  {/* ACTIONS */}
+                  <div className="mt-6 flex flex-wrap gap-3">
+
+                    {/* ACCEPT ORDER */}
+                    <button
+                      type="button"
+                      disabled={
+                        isBusy ||
+                        !canAccept
+                      }
+                      onClick={() =>
+                        run(
+                          order.id,
+                          () =>
+                            driverAcceptOrder(
+                              order.id
+                            )
+                        )
+                      }
+                      className="rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-bold text-black transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      {isBusy
+                        ? "Working..."
+                        : "Accept Order"}
+                    </button>
+
+                    {/* PICKED UP */}
+                    <button
+                      type="button"
+                      disabled={
+                        isBusy ||
+                        !canPickup
+                      }
+                      onClick={() =>
+                        run(
+                          order.id,
+                          () =>
+                            markPickedUp(
+                              order.id
+                            )
+                        )
+                      }
+                      className="rounded-xl bg-blue-500 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-blue-400 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      {isBusy
+                        ? "Working..."
+                        : "Mark Picked Up"}
+                    </button>
+
+                    {/* EN ROUTE */}
+                    <button
+                      type="button"
+                      disabled={
+                        isBusy ||
+                        !canEnRoute
+                      }
+                      onClick={() =>
+                        run(
+                          order.id,
+                          () =>
+                            markEnRoute(
+                              order.id
+                            )
+                        )
+                      }
+                      className="rounded-xl bg-purple-500 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-purple-400 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      {isBusy
+                        ? "Working..."
+                        : "Mark En Route"}
+                    </button>
+
+                    {/* DELIVERED */}
+                    <button
+                      type="button"
+                      disabled={
+                        isBusy ||
+                        !canDeliver
+                      }
+                      onClick={() =>
+                        run(
+                          order.id,
+                          () =>
+                            markDelivered(
+                              order.id
+                            )
+                        )
+                      }
+                      className="rounded-xl bg-green-500 px-4 py-2.5 text-sm font-bold text-black transition hover:bg-green-400 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      {isBusy
+                        ? "Working..."
+                        : "Mark Delivered"}
+                    </button>
+
+                  </div>
+
+                  {/* ZONE */}
+                  <div className="mt-5">
                     <Info
                       label="Zone"
                       value={
@@ -278,15 +442,23 @@ export default function DriverOrdersTable() {
                       }
                     />
                   </div>
+
                 </article>
               );
             })}
+
           </div>
         )}
+
       </section>
     </main>
   );
 }
+
+
+/* ============================================================
+   INFO
+============================================================ */
 
 function Info({
   label,
@@ -301,9 +473,38 @@ function Info({
         {label}
       </p>
 
-      <p className="mt-2 font-semibold text-white">
+      <p className="mt-2 break-words font-semibold text-white">
         {value}
       </p>
+    </div>
+  );
+}
+
+
+/* ============================================================
+   STATUS STEP
+============================================================ */
+
+function Step({
+  label,
+  active,
+  done,
+}: {
+  label: string;
+  active: boolean;
+  done: boolean;
+}) {
+  return (
+    <div
+      className={`rounded-xl border p-3 text-center text-xs font-bold ${
+        done
+          ? "border-green-500/30 bg-green-500/10 text-green-400"
+          : active
+          ? "border-orange-500/30 bg-orange-500/10 text-orange-400"
+          : "border-white/10 bg-[#111827] text-gray-500"
+      }`}
+    >
+      {label}
     </div>
   );
 }
