@@ -12,7 +12,7 @@ test("wrong resource, missing metadata and nonfinite money fail closed", () => {
 });
 test("unbalanced amounts or unsafe cents cannot be presented for confirmation", () => {
   assert.equal(validQuote({...quote,payableBeforeRecovery:51},"settlement","synthetic-queue"),false);
-  assert.equal(validQuote({...quote,remainingRecoveryBalance:1e15},"settlement","synthetic-queue"),false);
+  assert.equal(validQuote({...quote,remainingRecoveryBalance:1e13},"settlement","synthetic-queue"),false);
 });
 test("gross, empty, exponent and extra-decimal confirmations cannot be sent", () => {
   for(const amount of ["50","","2e1","20.001"]) assert.equal(confirmationFor(quote,amount,"synthetic-ref",true),null);
