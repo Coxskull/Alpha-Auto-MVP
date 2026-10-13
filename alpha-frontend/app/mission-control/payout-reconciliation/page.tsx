@@ -18,7 +18,7 @@ function ReviewQueue(){
   },[kind,cursor]);
   useEffect(()=>{alive.current=true;const timer=setTimeout(()=>void load(),0);return()=>{clearTimeout(timer);alive.current=false;++generation.current;};},[load]);
   async function inspect(q:ReconciliationSnapshot){if(saving)return;const current=++generation.current;setBusy(true);setSelected(null);setPending(null);setHistory([]);setMessage(null);
-    try{const [fresh,h]=await Promise.all([inspectReconciliation(q.kind,q.id),reconciliationHistory(q.kind,q.id)]);if(!alive.current||current!==generation.current)return;setSelected(fresh);setHistory(h.rows);setHistoryNext(h.next);}
+    try{const [fresh,h]=await Promise.all([inspectReconciliation(q.kind,q.id),reconciliationHistory(q.kind,q.id)]);if(!alive.current||current!==generation.current)return;setSelected(fresh);setHistory(h.rows);setHistoryNext(h.next);if(pending&&h.rows.some(c=>c.id===pending.id&&c.snapshot.fingerprint===pending.snapshot.fingerprint)){setPending(null);setMessage("Snapshot capture found in immutable history. No repeat request is needed.");}}
     catch{if(alive.current&&current===generation.current)setMessage("Unable to inspect this payout or its history. No capture was sent.");}
     finally{if(alive.current&&current===generation.current)setBusy(false);}
   }
@@ -28,14 +28,14 @@ function ReviewQueue(){
       else setMessage("Capture outcome is unknown. Check history or explicitly retry the same capture; no automatic retry will occur.");}
     finally{posting.current=false;if(alive.current)setSaving(false);}
   }
-  async function moreHistory(){if(!selected||saving||busy)return;setBusy(true);try{const h=await reconciliationHistory(selected.kind,selected.id,historyNext??undefined);if(!alive.current)return;setHistory(old=>[...old,...h.rows.filter(x=>!old.some(y=>x.id===y.id))]);setHistoryNext(h.next);}
+  async function moreHistory(){if(!selected||saving||busy)return;setBusy(true);try{const h=await reconciliationHistory(selected.kind,selected.id,pending?undefined:historyNext??undefined);if(!alive.current)return;setHistory(old=>[...old,...h.rows.filter(x=>!old.some(y=>x.id===y.id))]);setHistoryNext(h.next);if(pending&&h.rows.some(c=>c.id===pending.id&&c.snapshot.fingerprint===pending.snapshot.fingerprint)){setPending(null);setMessage("Snapshot capture found in immutable history. No repeat request is needed.");}}
     catch{if(alive.current)setMessage("Unable to load capture history.");}finally{if(alive.current)setBusy(false);}}
   const visible=rows.filter(q=>!exceptions||q.issues.length>0);
   const money=(n:number|null,currency:string)=>n===null?"Missing":`${n.toFixed(2)} ${currency||"Unknown currency"}`;
-  return <main className="mx-auto max-w-6xl space-y-5 p-6 text-slate-900"><h1 className="text-2xl font-bold">Payout reconciliation</h1>
+  return <main className="mx-auto max-w-6xl space-y-5 rounded bg-slate-50 p-6 text-slate-900"><h1 className="text-2xl font-bold">Payout reconciliation</h1>
     <p>Compare internal records and preserve review snapshots. No external bank/provider verification, approval, money transfer, or hold release occurs here.</p>
-    <div className="flex flex-wrap gap-3"><label>Payout type <select aria-label="Payout type" value={kind} disabled={busy||saving||!!pending} onChange={e=>{setKind(e.target.value as ReconciliationKind);setCursor(undefined);setSelected(null);}} className="rounded border bg-white p-2"><option value="settlement">Supplier / driver</option><option value="earning">Entrepreneur</option></select></label>
-    <label><input type="checkbox" checked={exceptions} onChange={e=>setExceptions(e.target.checked)} /> Exceptions on this page only</label>
+    <div className="flex flex-wrap gap-3"><label>Payout type <select style={{backgroundColor:"white",color:"#0f172a"}} aria-label="Payout type" value={kind} disabled={busy||saving||!!pending} onChange={e=>{setKind(e.target.value as ReconciliationKind);setCursor(undefined);setSelected(null);}} className="rounded border bg-white p-2"><option value="settlement">Supplier / driver</option><option value="earning">Entrepreneur</option></select></label>
+    <label><input type="checkbox" style={{width:16,height:16,marginRight:8}} checked={exceptions} onChange={e=>setExceptions(e.target.checked)} /> Exceptions on this page only</label>
     <button disabled={busy||saving||!!pending} onClick={()=>void load()} className="rounded border bg-white px-4">Refresh queue</button></div>
     {message&&<p role="status" className="rounded bg-amber-50 p-3">{message}</p>}{busy&&<p role="status">Loading review evidence…</p>}
     <div className="overflow-x-auto rounded border bg-white"><table className="w-full text-left text-sm"><thead><tr><th className="p-3">Payout</th><th>Payee</th><th>Currency / status</th><th>Exceptions</th><th>Action</th></tr></thead><tbody>{visible.map(q=><tr key={q.id} className="border-t"><td className="p-3">{q.id}</td><td>{q.payeeType}: {q.payeeId||"Missing"}</td><td>{q.currency} / {q.status}</td><td>{q.issues.length||"None detected"}</td><td><button disabled={busy||saving||!!pending} onClick={()=>void inspect(q)} className="rounded border p-2">Inspect</button></td></tr>)}</tbody></table>{!busy&&!visible.length&&<p className="p-3">No matching records on this page. Other pages may contain exceptions.</p>}</div>
