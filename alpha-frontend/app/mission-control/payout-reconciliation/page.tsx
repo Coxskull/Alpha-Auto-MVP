@@ -32,7 +32,7 @@ function ReviewQueue(){
     catch{if(alive.current)setMessage("Unable to load capture history.");}finally{if(alive.current)setBusy(false);}}
   const visible=rows.filter(q=>!exceptions||q.issues.length>0);
   const money=(n:number|null,currency:string)=>n===null?"Missing":`${n.toFixed(2)} ${currency||"Unknown currency"}`;
-  return <main className="mx-auto max-w-6xl space-y-5 rounded bg-slate-50 p-6 text-slate-900"><h1 className="text-2xl font-bold">Payout reconciliation</h1>
+  return <main className="mx-auto max-w-6xl space-y-5 rounded bg-slate-50 p-6 text-slate-900"><h1 className="text-2xl font-bold">Payout reconciliation</h1><a href="/mission-control/payout-record-inventory" className="underline">Review payout records with missing sources</a>
     <p>Compare internal records and preserve review snapshots. No external bank/provider verification, approval, money transfer, or hold release occurs here.</p>
     <div className="flex flex-wrap gap-3"><label>Payout type <select style={{backgroundColor:"white",color:"#0f172a"}} aria-label="Payout type" value={kind} disabled={busy||saving||!!pending} onChange={e=>{setKind(e.target.value as ReconciliationKind);setCursor(undefined);setSelected(null);}} className="rounded border bg-white p-2"><option value="settlement">Supplier / driver</option><option value="earning">Entrepreneur</option></select></label>
     <label><input type="checkbox" style={{width:16,height:16,marginRight:8}} checked={exceptions} onChange={e=>setExceptions(e.target.checked)} /> Exceptions on this page only</label>
