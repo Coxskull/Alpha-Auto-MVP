@@ -19,7 +19,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: 20.20.2
+          node-version: 24.19.0
           cache: npm
           cache-dependency-path: alpha-frontend/package-lock.json
       - run: git rev-parse HEAD && node --version
