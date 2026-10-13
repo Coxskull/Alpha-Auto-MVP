@@ -1,0 +1,13 @@
+# Payout operator workflow
+
+Both settlement operator pages now open a shared review dialog instead of sending a bodyless mark-paid request. An administrator-only entrepreneur payout queue is available at /mission-control/entrepreneur/payouts and linked from the program page.
+
+The authenticated API client and NEXT_PUBLIC_API_URL binding are preserved. The dialog requests a current quote and displays gross, signed adjustments, payable, recovery, net cash, currency, carry-forward and any entrepreneur minimum. It rejects malformed/missing operator metadata or unsafe/unbalanced monetary numbers; there is no gross fallback. Currency formatting shows the backend's exact two-decimal money convention. The operator types the exact net amount, enters a reference, and acknowledges the reviewed cash/zero-offset result. No money is transferred by this UI.
+
+Held/unsupported/unauthorized quotes cannot be confirmed. A stale net/currency conflict clears the amount and acknowledgment and requires an explicit refresh and new decision, preserving the reference. No POST is automatically retried. Network/5xx confirmation outcomes are treated as unknown; refresh checks whether the payout was recorded before another decision. Quote/status refresh uses the server's locked accounting paths; frontend state is never financial authority. A failed list refresh after a successful POST is reported as a list error, not an unknown payout.
+
+Zero-net offsets display no cash and remaining recovery. Positive entrepreneur net below the configured threshold is blocked. An already-recorded quote permits no further confirmation. Legacy paid/replay response fields are supported for recorded status, but legacy fresh quotes missing the new metadata are rejected safely. The paired Phase 3 backend contract must be available before these screens can record new payouts; no automatic deployment is included.
+
+Validation: TypeScript, changed-file ESLint, Next production build, eight pure contract cases and mocked Chromium operator scenarios. The existing entrepreneur configuration page has a pre-existing unused loadConfiguration warning; no new lint errors are accepted. Browser fixtures use synthetic tokens/accounts and intercept every API request against loopback, with other outbound requests blocked. No production/provider connection, deployment, transfer or credential change occurs in acceptance.
+
+Independent human/operator/accounting review and isolated hosted acceptance remain pending. Auth/role state and payout holds continue to be enforced by the backend. Local browser checks are not live provider acceptance.

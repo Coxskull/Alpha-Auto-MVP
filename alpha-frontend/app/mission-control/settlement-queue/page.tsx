@@ -1,5 +1,7 @@
 "use client";
 
+import PayoutReview from "@/components/financials/PayoutReview";
+
 import {
   useCallback,
   useEffect,
@@ -9,7 +11,6 @@ import {
 import {
   getPendingSettlements,
   getSettlementQueue,
-  markSettlementPaid,
   verifySettlement,
   type ApiErrorResponse,
   type PendingSettlementItem,
@@ -248,34 +249,7 @@ export default function SettlementQueuePage() {
     }
   }
 
-  async function handleMarkPaid(
-    settlementId: string
-  ) {
-    try {
-      setPayingId(settlementId);
-      setError(null);
-
-      await markSettlementPaid(
-        settlementId
-      );
-
-      await loadSettlements();
-    } catch (error: unknown) {
-      console.error(
-        "Failed to mark settlement paid:",
-        error
-      );
-
-      setError(
-        getErrorMessage(
-          error,
-          "Failed to mark settlement as paid."
-        )
-      );
-    } finally {
-      setPayingId(null);
-    }
-  }
+  function handleMarkPaid(id: string) { setPayingId(id); }
 
   const unpaidQueueCount =
     queue.filter(
@@ -739,7 +713,7 @@ export default function SettlementQueuePage() {
                                   >
                                     {isPaying
                                       ? "Processing..."
-                                      : "Mark Paid"}
+                                      : "Review payout"}
                                   </button>
                                 )}
                               </td>
@@ -755,6 +729,7 @@ export default function SettlementQueuePage() {
           </>
         )}
       </div>
+      {payingId && <PayoutReview key={payingId} kind="settlement" id={payingId} onClose={() => setPayingId(null)} onRecorded={loadSettlements} />}
     </main>
   );
 }
