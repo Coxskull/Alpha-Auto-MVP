@@ -50,6 +50,7 @@ export default function AdminFinancialsPage() {
     <main className="min-h-screen bg-[#020617] text-white p-6">
       <div className="mb-6">
         <h1 className="text-2xl font-black">Admin Payout Dashboard</h1>
+        <a href="/mission-control/payout-reconciliation" className="text-sm underline">Review payout reconciliation</a>
         <p className="text-sm text-slate-400 mt-1">
           Tax-aware settlements, provider payables, and reconciliation status.
         </p>
