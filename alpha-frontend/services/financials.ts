@@ -145,10 +145,11 @@ export async function getPendingSettlements(): Promise<
 }
 
 export async function markSettlementPaid(
-  id: string
+  id: string,
+  confirmation: import("@/lib/payoutQuote").PayoutConfirmation
 ) {
   const res = await api.post(
-    `/api/Financials/settlement/${id}/mark-paid`
+    `/api/Financials/settlement/${id}/mark-paid`, confirmation
   );
 
   return res.data;

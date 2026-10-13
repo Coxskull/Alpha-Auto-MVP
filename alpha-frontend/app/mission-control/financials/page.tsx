@@ -1,9 +1,10 @@
 "use client";
 
+import PayoutReview from "@/components/financials/PayoutReview";
+
 import { useCallback, useEffect, useState } from "react";
 import {
   getSettlementQueue,
-  markSettlementPaid,
   type SettlementItem,
 } from "@/services/financials";
 
@@ -43,15 +44,7 @@ export default function AdminFinancialsPage() {
     return () => window.clearTimeout(timeout);
   }, [load]);
 
-  async function pay(id: string) {
-    try {
-      setPayingId(id);
-      await markSettlementPaid(id);
-      await load();
-    } finally {
-      setPayingId(null);
-    }
-  }
+  function pay(id: string) { setPayingId(id); }
 
   return (
     <main className="min-h-screen bg-[#020617] text-white p-6">
@@ -188,7 +181,7 @@ export default function AdminFinancialsPage() {
                     disabled={payingId === item.id}
                     className="mt-4 w-full bg-emerald-500 disabled:bg-slate-600 disabled:text-slate-300 text-black rounded-xl py-2 font-bold"
                   >
-                    {payingId === item.id ? "Processing..." : "Mark as Paid"}
+                    {payingId === item.id ? "Processing..." : "Review payout"}
                   </button>
                 )}
               </div>
@@ -196,6 +189,7 @@ export default function AdminFinancialsPage() {
           })}
         </div>
       )}
+      {payingId && <PayoutReview key={payingId} kind="settlement" id={payingId} onClose={() => setPayingId(null)} onRecorded={load} />}
     </main>
   );
 }

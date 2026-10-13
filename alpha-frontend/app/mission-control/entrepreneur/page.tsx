@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 import {
   getEntrepreneurConfiguration,
@@ -212,6 +213,8 @@ async function saveConfiguration() {
             commission program.
           </p>
         </div>
+
+        <Link href="/mission-control/entrepreneur/payouts" className="inline-block rounded-lg bg-emerald-600 px-4 py-3 font-semibold text-white">Review entrepreneur payouts</Link>
 
         {/* ALERTS */}
 

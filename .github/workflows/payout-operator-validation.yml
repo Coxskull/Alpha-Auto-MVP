@@ -1,0 +1,35 @@
+name: Payout operator frontend validation
+on:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: alpha-frontend
+    env:
+      NEXT_PUBLIC_API_URL: http://127.0.0.1:59999
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24.19.0
+          cache: npm
+          cache-dependency-path: alpha-frontend/package-lock.json
+      - run: git rev-parse HEAD && node --version
+      - run: npm ci --ignore-scripts --no-fund
+      - run: npm audit --omit=dev --audit-level=moderate
+      - run: npx tsc --noEmit
+      - name: Lint payout changes
+        run: npx eslint components/financials/PayoutReview.tsx lib/payoutQuote.ts tests/payoutQuote.test.ts services/payouts.ts services/financials.ts app/mission-control/financials/page.tsx app/mission-control/settlement-queue/page.tsx app/mission-control/entrepreneur/page.tsx app/mission-control/entrepreneur/payouts/page.tsx
+      - name: Pure payout contract cases
+        run: |
+          npx tsc lib/payoutQuote.ts tests/payoutQuote.test.ts --outDir "$RUNNER_TEMP/payout-tests" --module commonjs --moduleResolution node --target es2020 --esModuleInterop --skipLibCheck
+          node --test "$RUNNER_TEMP/payout-tests/tests/payoutQuote.test.js"
+      - run: npm run build
