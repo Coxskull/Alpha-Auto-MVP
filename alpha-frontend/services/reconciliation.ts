@@ -7,13 +7,14 @@ export async function reconciliationQueue(kind:ReconciliationKind,after?:string)
   return data;
 }
 export async function inspectReconciliation(kind:ReconciliationKind,id:string):Promise<ReconciliationSnapshot> {
-  const {data}=await api.get(path(kind,id)); if(!validReconciliation(data,kind,id)) throw new Error("The snapshot could not be validated."); return data;
+  const {data}=await api.get(path(kind,id)); if(!validReconciliation(data,kind,id) || !data.inspectionAvailable) throw new Error("The snapshot could not be validated."); return data;
 }
 export async function reconciliationHistory(kind:ReconciliationKind,id:string,after?:string):Promise<{rows:ReconciliationCapture[];next:string|null}> {
   const {data}=await api.get(path(kind,id)+"/history",{params:{after,limit:20}});
   if(!data || !Array.isArray(data.rows) || !data.rows.every((r:unknown)=>validCapture(r,kind,id)) || !(data.next===null || typeof data.next==="string")) throw new Error("Capture history could not be validated."); return data;
 }
 export async function captureReconciliation(q:ReconciliationSnapshot,captureId:string):Promise<ReconciliationCapture> {
+  if(!q.inspectionAvailable) throw new Error("Manual review is required; capture is unavailable.");
   const {data}=await api.post(path(q.kind,q.id)+"/captures",{id:captureId,fingerprint:q.fingerprint});
   if(!validCapture(data,q.kind,q.id) || data.id!==captureId || data.snapshot.fingerprint!==q.fingerprint) throw new Error("Capture response could not be validated. Check history before retrying.");return data;
 }
