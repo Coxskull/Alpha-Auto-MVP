@@ -29,7 +29,8 @@ test("zero cash is an explicit valid confirmation with carry-forward", () => {
   assert.equal(confirmationFor(zero,"0","synthetic-offset",true)?.paidAmount,0);
 });
 test("entrepreneur signed adjustments must balance", () => {
-  const earning={...quote,settlementId:undefined,earningId:"synthetic-earning",refundAdjustment:-5,chargebackAdjustment:-5,payableBeforeRecovery:40,recoveryOffset:20};
+  const earning={...quote,settlementId:undefined,earningId:"synthetic-earning",minimumPayoutThreshold:0,refundAdjustment:-5,chargebackAdjustment:-5,payableBeforeRecovery:40,recoveryOffset:20};
   assert.equal(validQuote(earning,"earning","synthetic-earning"),true);
   assert.equal(validQuote({...earning,chargebackAdjustment:undefined},"earning","synthetic-earning"),false);
+  assert.equal(validQuote({...earning,minimumPayoutThreshold:50},"earning","synthetic-earning"),false);
 });

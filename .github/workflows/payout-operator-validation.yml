@@ -24,6 +24,7 @@ jobs:
           cache-dependency-path: alpha-frontend/package-lock.json
       - run: git rev-parse HEAD && node --version
       - run: npm ci --ignore-scripts --no-fund
+      - run: npm audit --omit=dev --audit-level=moderate
       - run: npx tsc --noEmit
       - name: Lint payout changes
         run: npx eslint components/financials/PayoutReview.tsx lib/payoutQuote.ts tests/payoutQuote.test.ts services/payouts.ts services/financials.ts app/mission-control/financials/page.tsx app/mission-control/settlement-queue/page.tsx app/mission-control/entrepreneur/page.tsx app/mission-control/entrepreneur/payouts/page.tsx

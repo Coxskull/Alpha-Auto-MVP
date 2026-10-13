@@ -15,8 +15,11 @@ export function validQuote(value: unknown, kind: PayoutKind, id: string): value 
   return (kind === "settlement" ? q.settlementId : q.earningId) === id && q.status === "quote"
     && typeof q.currency === "string" && /^[A-Z]{3}$/.test(q.currency)
     && amounts.every(n => typeof n === "number" && Number.isFinite(n) && n >= 0 && Number.isSafeInteger(Math.round(n * 100)) && Math.abs(n * 100 - Math.round(n * 100)) < 0.000001)
-    && typeof q.refundAdjustment === "number" && Number.isFinite(q.refundAdjustment)
-    && (kind !== "earning" || typeof q.chargebackAdjustment === "number" && Number.isFinite(q.chargebackAdjustment))
+    && typeof q.refundAdjustment === "number" && Number.isFinite(q.refundAdjustment) && Number.isSafeInteger(Math.round(q.refundAdjustment * 100))
+    && (kind !== "earning" || typeof q.chargebackAdjustment === "number" && Number.isFinite(q.chargebackAdjustment)
+      && Number.isSafeInteger(Math.round(q.chargebackAdjustment * 100)) && typeof q.minimumPayoutThreshold === "number"
+      && Number.isFinite(q.minimumPayoutThreshold) && q.minimumPayoutThreshold >= 0
+      && q.eligibleForConfirmation === (q.netAmount === 0 || q.netAmount >= q.minimumPayoutThreshold))
     && Math.abs(q.payableBeforeRecovery - (kind === "settlement" ? q.grossAmount - q.refundAdjustment : q.grossAmount + q.refundAdjustment + (q.chargebackAdjustment || 0))) < 0.000001
     && q.netAmount === q.paidAmount && Math.abs(q.payableBeforeRecovery - q.recoveryOffset - q.netAmount) < 0.000001
     && q.zeroNet === (q.netAmount === 0) && q.quoteIsAdvisory === true && q.confirmationRequired === true

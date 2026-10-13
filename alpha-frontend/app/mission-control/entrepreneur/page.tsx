@@ -214,6 +214,8 @@ async function saveConfiguration() {
           </p>
         </div>
 
+        <Link href="/mission-control/entrepreneur/payouts" className="inline-block rounded-lg bg-emerald-600 px-4 py-3 font-semibold text-white">Review entrepreneur payouts</Link>
+
         {/* ALERTS */}
 
         {error && (
@@ -715,8 +717,6 @@ async function saveConfiguration() {
           </div>
 
         </div>
-
-        <Link href="/mission-control/entrepreneur/payouts" className="inline-block rounded-lg bg-emerald-600 px-4 py-3 font-semibold text-white">Review entrepreneur payouts</Link>
 
         {/* IMPORTANT FINANCIAL EXPLANATION */}
 
