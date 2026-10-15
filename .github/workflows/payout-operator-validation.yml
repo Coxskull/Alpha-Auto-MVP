@@ -26,8 +26,8 @@ jobs:
       - run: npm ci --ignore-scripts --no-fund
       - run: npm audit --omit=dev --audit-level=moderate
       - run: npx tsc --noEmit
-      - name: Lint payout changes
-        run: npx eslint components/financials/PayoutReview.tsx lib/payoutQuote.ts tests/payoutQuote.test.ts services/payouts.ts services/financials.ts app/mission-control/financials/page.tsx app/mission-control/settlement-queue/page.tsx app/mission-control/entrepreneur/page.tsx app/mission-control/entrepreneur/payouts/page.tsx app/mission-control/payout-reconciliation/page.tsx services/reconciliation.ts lib/reconciliation.ts tests/reconciliation.test.ts lib/payoutRecordInventory.ts services/payoutRecordInventory.ts tests/payoutRecordInventory.test.ts app/mission-control/payout-record-inventory/page.tsx
+      - name: Lint complete frontend
+        run: npm run lint
       - name: Pure payout contract cases
         run: |
           npx tsc lib/payoutQuote.ts tests/payoutQuote.test.ts lib/reconciliation.ts tests/reconciliation.test.ts lib/payoutRecordInventory.ts tests/payoutRecordInventory.test.ts --outDir "$RUNNER_TEMP/payout-tests" --module commonjs --moduleResolution node --target es2020 --esModuleInterop --skipLibCheck
