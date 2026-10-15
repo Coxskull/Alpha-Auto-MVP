@@ -113,7 +113,13 @@ export default function ReferralPage() {
   }, []);
 
   useEffect(() => {
-    loadDashboard();
+    // Schedule the initial request outside the synchronous effect phase.
+    // Cancellation prevents Strict Mode's discarded mount from issuing a request.
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) void loadDashboard();
+    });
+    return () => { cancelled = true; };
   }, [loadDashboard]);
 
   const filteredMembers = useMemo(() => {
