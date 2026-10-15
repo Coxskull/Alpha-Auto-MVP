@@ -49,12 +49,12 @@ export default function HomePage() {
       } catch (error) {
         console.error("Unable to load customer marketplace", error);
       } finally {
+        updateCartCount();
         setLoading(false);
       }
     }
 
     void fetchData();
-    updateCartCount();
   }, []);
 
   const filteredProducts = useMemo(() => {
